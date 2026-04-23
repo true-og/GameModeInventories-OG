@@ -56,12 +56,13 @@ tasks.withType<AbstractArchiveTask>().configureEach { // Ensure reproducible .ja
 
 /* ----------------------------- Shadow -------------------------------- */
 tasks.shadowJar {
+    archiveClassifier.set("") // Use empty string instead of null.
     exclude("io.github.miniplaceholders.*") // Exclude the MiniPlaceholders package from being shadowed.
     exclude("org/purpurmc/**", "org/spigotmc/**")
     isEnableRelocation = true
     relocationPrefix = "${project.group}.shadow"
     // relocate("com.zaxxer.hikari", "${project.group}.shadow.hikari")
-    archiveClassifier.set("") // Use empty string instead of null.
+    mergeServiceFiles()
     minimize()
 }
 
