@@ -63,7 +63,10 @@ tasks.shadowJar {
     exclude("org/purpurmc/**", "org/spigotmc/**")
     isEnableRelocation = true
     relocationPrefix = "${project.group}.shadow"
-    minimize()
+    minimize {
+        // SLF4J discovers providers through META-INF/services, so Shadow's static minimizer cannot see this usage.
+        exclude(dependency("org.slf4j:slf4j-nop:.*"))
+    }
     // relocate("com.zaxxer.hikari", "${project.group}.shadow.hikari")
     mergeServiceFiles()
 }
