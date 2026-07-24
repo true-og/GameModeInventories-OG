@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -64,6 +65,29 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 
         if (cmd.getName().equalsIgnoreCase("gmi")) {
+
+            if (label.equalsIgnoreCase("gmic")) {
+
+                if (!(sender instanceof Player player)) {
+
+                    sender.sendMessage(plugin.MY_PLUGIN_NAME + "This command can only be used by a player.");
+                    return true;
+
+                }
+
+                if (!player.hasPermission("gamemodeinventories.toggle")) {
+
+                    player.sendMessage(plugin.MY_PLUGIN_NAME + plugin.getM().getMessage().get("NO_PERMISSION"));
+                    return true;
+
+                }
+
+                GameMode target = player.getGameMode().equals(GameMode.CREATIVE) ? GameMode.SURVIVAL
+                        : GameMode.CREATIVE;
+                player.setGameMode(target);
+                return true;
+
+            }
 
             if (args.length == 0) {
 
@@ -128,9 +152,7 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
                                     }
 
                                 }
-
                                 p.sendMessage(plugin.MY_PLUGIN_NAME + "Kit inventory saved.");
-
                             }
 
                         } else {
@@ -160,7 +182,6 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
                                                 i = GameModeInventoriesBukkitSerialization.fromDatabase(savedinventory);
 
                                             }
-
                                             p.getInventory().setContents(i);
 
                                         } catch (IOException e) {
@@ -170,25 +191,19 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
                                         }
 
                                     }
-
                                     p.sendMessage(plugin.MY_PLUGIN_NAME + "Kit inventory loaded.");
-
                                 }
 
                             }
 
                         }
-
                     } catch (SQLException e) {
 
                         plugin.debug("Could not " + args[1].toLowerCase() + " inventory for kit, " + e);
-
                     }
-
                     return true;
 
                 }
-
             } else {
 
                 sender.sendMessage(plugin.MY_PLUGIN_NAME + plugin.getM().getMessage().get("NO_PERMISSION"));
@@ -197,13 +212,17 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
             }
 
         }
-
         return false;
-
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
+
+        if (label.equalsIgnoreCase("gmic")) {
+
+            return ImmutableList.of();
+
+        }
 
         if (args.length <= 1) {
 
@@ -212,13 +231,10 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
         }
 
         return ImmutableList.of();
-
     }
 
     private List<String> partial(String token, Collection<String> from) {
 
         return StringUtil.copyPartialMatches(token, from, new ArrayList<>(from.size()));
-
     }
-
 }
