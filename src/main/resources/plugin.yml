@@ -4,8 +4,8 @@ main: me.eccentric_nz.gamemodeinventories.GameModeInventories
 name: GameModeInventories-OG
 load: POSTWORLD
 softdepend: [ Multiverse-Core,MultiWorld,CoreProtect ]
-version: 3.5.0
-api-version: 1.19
+version: ${version}
+api-version: ${apiVersion}
 libraries:
   - com.zaxxer:HikariCP:5.0.1
 permissions:
@@ -24,8 +24,11 @@ permissions:
   gamemodeinventories.admin:
     default: op
     description: Allow players to change config options.
+  gamemodeinventories.toggle:
+    default: op
+    description: Allow players to toggle between CREATIVE and SURVIVAL with /gmic.
 commands:
   gmi:
-    permissions: gamemodeinventories.admin
-    description: Allow players to change config options.
+    aliases: [ gmic ]
+    description: Allow players to change config options or toggle CREATIVE mode.
     usage: /<command> [config option]
