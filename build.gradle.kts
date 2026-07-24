@@ -39,12 +39,14 @@ repositories {
     maven { url = uri("https://repo.purpurmc.org/snapshots") } // Import the PurpurMC Maven Repository.
     maven("https://hub.spigotmc.org/nexus/content/groups/public/")
     maven { url = uri("https://maven.playpro.com/") }
+    maven { url = uri("https://maven.enginehub.org/repo/") }
 }
 
 /* ---------------------- Java project deps ---------------------------- */
 dependencies {
     compileOnly("org.purpurmc.purpur:purpur-api:1.19.4-R0.1-SNAPSHOT") // Declare Purpur API version to be packaged.
     compileOnly("net.coreprotect:coreprotect:22.4") // Import the CoreProtect API.
+    compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.9") // Import the WorldGuard API.
     implementation("com.zaxxer:HikariCP:5.0.1")
     implementation("org.slf4j:slf4j-api:2.0.17") // Bundle a relocated SLF4J API for shaded dependencies.
     implementation("org.slf4j:slf4j-nop:2.0.17") // Provide a relocated no-op SLF4J backend to avoid provider warnings.
