@@ -7,6 +7,7 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -50,7 +51,12 @@ public class GameModeInventoriesMessage {
 
         messagesConfig.getKeys(false).forEach((m) -> {
 
-            message.put(m, messagesConfig.getString(m));
+            String configuredMessage = messagesConfig.getString(m);
+            if (configuredMessage != null) {
+
+                message.put(m, ChatColor.translateAlternateColorCodes('&', configuredMessage));
+
+            }
 
         });
 
@@ -94,7 +100,6 @@ public class GameModeInventoriesMessage {
                         out.close();
 
                     } catch (IOException e) {
-
                     }
 
                 }
@@ -112,7 +117,6 @@ public class GameModeInventoriesMessage {
                         in.close();
 
                     } catch (IOException e) {
-
                     }
 
                 }
@@ -134,6 +138,7 @@ public class GameModeInventoriesMessage {
             if (!messagesConfig.contains(entry.getKey())) {
 
                 messagesConfig.set(entry.getKey(), entry.getValue());
+                message.put(entry.getKey(), ChatColor.translateAlternateColorCodes('&', entry.getValue()));
                 m++;
 
             }
