@@ -152,7 +152,9 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
                                     }
 
                                 }
+
                                 p.sendMessage(plugin.MY_PLUGIN_NAME + "Kit inventory saved.");
+
                             }
 
                         } else {
@@ -182,6 +184,7 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
                                                 i = GameModeInventoriesBukkitSerialization.fromDatabase(savedinventory);
 
                                             }
+
                                             p.getInventory().setContents(i);
 
                                         } catch (IOException e) {
@@ -191,19 +194,25 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
                                         }
 
                                     }
+
                                     p.sendMessage(plugin.MY_PLUGIN_NAME + "Kit inventory loaded.");
+
                                 }
 
                             }
 
                         }
+
                     } catch (SQLException e) {
 
                         plugin.debug("Could not " + args[1].toLowerCase() + " inventory for kit, " + e);
+
                     }
+
                     return true;
 
                 }
+
             } else {
 
                 sender.sendMessage(plugin.MY_PLUGIN_NAME + plugin.getM().getMessage().get("NO_PERMISSION"));
@@ -212,7 +221,9 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
             }
 
         }
+
         return false;
+
     }
 
     @Override
@@ -231,10 +242,13 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
         }
 
         return ImmutableList.of();
+
     }
 
     private List<String> partial(String token, Collection<String> from) {
 
         return StringUtil.copyPartialMatches(token, from, new ArrayList<>(from.size()));
+
     }
+
 }
