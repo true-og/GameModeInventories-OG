@@ -3,6 +3,7 @@ description: Allow players to have separate inventories for each game mode (Crea
 main: me.eccentric_nz.gamemodeinventories.GameModeInventories
 name: GameModeInventories-OG
 load: POSTWORLD
+depend: [ WorldGuard ]
 softdepend: [ Multiverse-Core,MultiWorld,CoreProtect ]
 version: 3.5.0
 api-version: 1.19
@@ -27,6 +28,9 @@ permissions:
   gamemodeinventories.toggle:
     default: op
     description: Allow players to toggle between CREATIVE and SURVIVAL with /gmic.
+  gamemodeinventories.anywhere:
+    default: op
+    description: Allow players to use CREATIVE mode outside configured WorldGuard regions.
 commands:
   gmi:
     aliases: [ gmic ]

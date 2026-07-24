@@ -1,11 +1,19 @@
 package me.eccentric_nz.gamemodeinventories;
 
+import com.sk89q.worldedit.bukkit.BukkitAdapter;
+import com.sk89q.worldguard.WorldGuard;
+import com.sk89q.worldguard.protection.ApplicableRegionSet;
+import com.sk89q.worldguard.protection.regions.RegionContainer;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
 import java.util.logging.Level;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
@@ -18,6 +26,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
@@ -29,11 +38,23 @@ import org.bukkit.inventory.ItemStack;
 public class GameModeInventoriesListener implements Listener {
 
     private final GameModeInventories plugin;
-    List<Material> containers = new ArrayList<>();
+    private final List<Material> containers = new ArrayList<>();
+    private final Set<String> creativeRegions = new HashSet<>();
+    private final Set<UUID> protectedFromForcedFall = new HashSet<>();
+    private final RegionContainer regionContainer;
 
     public GameModeInventoriesListener(GameModeInventories plugin) {
 
         this.plugin = plugin;
+        regionContainer = WorldGuard.getInstance().getPlatform().getRegionContainer();
+        List<String> configuredRegions = this.plugin.getConfig().getStringList("creative_regions");
+        if (configuredRegions.isEmpty()) {
+
+            configuredRegions = List.of("spawn");
+
+        }
+
+        configuredRegions.stream().map(region -> region.toLowerCase(Locale.ROOT)).forEach(creativeRegions::add);
         for (String m : this.plugin.getConfig().getStringList("containers")) {
 
             try {
@@ -51,11 +72,19 @@ public class GameModeInventoriesListener implements Listener {
 
     }
 
-    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onGameModeChange(PlayerGameModeChangeEvent event) {
 
         Player p = event.getPlayer();
         GameMode newGM = event.getNewGameMode();
+        if (newGM.equals(GameMode.CREATIVE) && !canUseCreativeAt(p, p.getLocation())) {
+
+            event.setCancelled(true);
+            forceSurvival(p);
+            return;
+
+        }
+
         if (newGM.equals(GameMode.SPECTATOR) && plugin.getConfig().getBoolean("restrict_spectator")
                 && !p.hasPermission("gamemodeinventories.spectator") && !p.hasPermission("noclip.use"))
         {
@@ -73,15 +102,11 @@ public class GameModeInventoriesListener implements Listener {
                 plugin.getInventoryHandler().switchInventories(p, newGM);
                 if (newGM.equals(GameMode.CREATIVE) && plugin.getConfig().getBoolean("creative_world.switch_to")) {
 
-                    // get spawn location
                     Location loc = plugin.getServer().getWorld(plugin.getConfig().getString("creative_world.world"))
                             .getSpawnLocation();
                     if (plugin.getConfig().getString("creative_world.location").equals("last_known")) {
 
-                        // get last known position in world
                         String uuid = p.getUniqueId().toString();
-                        // player changed worlds, record last location
-                        // check if the player has a record for this world
                         try (Connection connection = plugin.getDatabaseConnection();
                                 PreparedStatement statement = connection.prepareStatement(
                                         "SELECT * FROM " + plugin.getPrefix() + "worlds WHERE uuid = ? AND world = ?");)
@@ -101,7 +126,6 @@ public class GameModeInventoriesListener implements Listener {
                                         double z = rs.getDouble("z");
                                         float yaw = rs.getFloat("yaw");
                                         float pitch = rs.getFloat("pitch");
-                                        // send to last location
                                         loc = new Location(w, x, y, z, yaw, pitch);
 
                                     }
@@ -129,6 +153,82 @@ public class GameModeInventoriesListener implements Listener {
             }
 
         }
+
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onMove(PlayerMoveEvent event) {
+
+        Location to = event.getTo();
+        if (to == null) {
+
+            return;
+
+        }
+
+        Player player = event.getPlayer();
+        if (protectedFromForcedFall.contains(player.getUniqueId()) && player.isOnGround()) {
+
+            protectedFromForcedFall.remove(player.getUniqueId());
+
+        }
+
+        Location from = event.getFrom();
+        if (player.getGameMode().equals(GameMode.CREATIVE)
+                && (from.getBlockX() != to.getBlockX() || from.getBlockY() != to.getBlockY()
+                        || from.getBlockZ() != to.getBlockZ())
+                && !canUseCreativeAt(player, to))
+        {
+
+            forceSurvival(player);
+
+        }
+
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onTeleportCreativeRestriction(PlayerTeleportEvent event) {
+
+        Player player = event.getPlayer();
+        Location to = event.getTo();
+        if (to != null && player.getGameMode().equals(GameMode.CREATIVE) && !canUseCreativeAt(player, to)) {
+
+            plugin.getServer().getScheduler().runTask(plugin, () -> forceSurvival(player));
+
+        }
+
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+
+        Player player = event.getPlayer();
+        if (player.getGameMode().equals(GameMode.CREATIVE) && !canUseCreativeAt(player, player.getLocation())) {
+
+            plugin.getServer().getScheduler().runTask(plugin, () -> forceSurvival(player));
+
+        }
+
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onFallDamage(EntityDamageEvent event) {
+
+        if (event.getCause().equals(EntityDamageEvent.DamageCause.FALL) && event.getEntity() instanceof Player player
+                && protectedFromForcedFall.remove(player.getUniqueId()))
+        {
+
+            event.setCancelled(true);
+            player.setFallDistance(0.0F);
+
+        }
+
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+
+        protectedFromForcedFall.remove(event.getPlayer().getUniqueId());
 
     }
 
@@ -240,8 +340,7 @@ public class GameModeInventoriesListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onPlayerInteractAtEntity(PlayerInteractAtEntityEvent event) {
 
-        // treat it the same as interacting with an entity in general
-        onEntityClick((PlayerInteractEntityEvent) event);
+        onEntityClick(event);
 
     }
 
@@ -309,6 +408,43 @@ public class GameModeInventoriesListener implements Listener {
             }
 
         }
+
+    }
+
+    private boolean canUseCreativeAt(Player player, Location location) {
+
+        if (player.hasPermission("gamemodeinventories.anywhere")) {
+
+            return true;
+
+        }
+
+        ApplicableRegionSet regions = regionContainer.createQuery().getApplicableRegions(BukkitAdapter.adapt(location));
+        return regions.getRegions().stream()
+                .anyMatch(region -> creativeRegions.contains(region.getId().toLowerCase(Locale.ROOT)));
+
+    }
+
+    private void forceSurvival(Player player) {
+
+        if (!player.isOnline() || player.getGameMode().equals(GameMode.SURVIVAL)) {
+
+            return;
+
+        }
+
+        protectedFromForcedFall.add(player.getUniqueId());
+        player.setFallDistance(0.0F);
+        player.setGameMode(GameMode.SURVIVAL);
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+
+            if (player.isOnline() && player.isOnGround()) {
+
+                protectedFromForcedFall.remove(player.getUniqueId());
+
+            }
+
+        });
 
     }
 

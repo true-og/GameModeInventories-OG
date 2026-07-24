@@ -12,6 +12,8 @@ no_wither_spawn: true
 no_golem_spawn: true
 remove_potions: false
 restrict_creative: true
+creative_regions:
+- spawn
 containers:
 - ANVIL
 - BARREL
