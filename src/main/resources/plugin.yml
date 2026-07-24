@@ -24,8 +24,11 @@ permissions:
   gamemodeinventories.admin:
     default: op
     description: Allow players to change config options.
+  gamemodeinventories.toggle:
+    default: op
+    description: Allow players to toggle between CREATIVE and SURVIVAL with /gmic.
 commands:
   gmi:
-    permissions: gamemodeinventories.admin
-    description: Allow players to change config options.
+    aliases: [ gmic ]
+    description: Allow players to change config options or toggle CREATIVE mode.
     usage: /<command> [config option]
