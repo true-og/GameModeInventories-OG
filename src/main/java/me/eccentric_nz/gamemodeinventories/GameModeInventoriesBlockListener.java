@@ -3,6 +3,7 @@
  */
 package me.eccentric_nz.gamemodeinventories;
 
+import me.eccentric_nz.gamemodeinventories.GameModeInventoriesMessage.Arg;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -190,8 +191,7 @@ public class GameModeInventoriesBlockListener implements Listener {
                     event.setUseItemInHand(Result.DENY);
                     if (!plugin.getConfig().getBoolean("dont_spam_chat")) {
 
-                        p.sendMessage(plugin.MY_PLUGIN_NAME
-                                + String.format(plugin.getM().getMessage().get("NO_CREATIVE_PLACE"), mat.toString()));
+                        plugin.message(p, plugin.getM().get("NO_CREATIVE_PLACE", new Arg("material", mat.toString())));
 
                     }
 

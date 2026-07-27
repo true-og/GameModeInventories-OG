@@ -37,7 +37,7 @@ public class GameModeInventoriesVillagerListener implements Listener {
             event.setCancelled(true);
             if (!plugin.getConfig().getBoolean("dont_spam_chat")) {
 
-                player.sendMessage(plugin.MY_PLUGIN_NAME + plugin.getM().getMessage().get("NO_TRADE"));
+                plugin.message(player, plugin.getM().get("NO_TRADE"));
 
             }
 

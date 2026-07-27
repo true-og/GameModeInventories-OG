@@ -4,7 +4,7 @@
 package me.eccentric_nz.gamemodeinventories;
 
 import java.util.List;
-import org.bukkit.ChatColor;
+import me.eccentric_nz.gamemodeinventories.GameModeInventoriesMessage.Arg;
 import org.bukkit.GameMode;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -53,9 +53,8 @@ public class GameModeInventoriesCommandListener implements Listener {
                 event.setCancelled(true);
                 if (!plugin.getConfig().getBoolean("dont_spam_chat")) {
 
-                    event.getPlayer().sendMessage(
-                            plugin.MY_PLUGIN_NAME + String.format(plugin.getM().getMessage().get("NO_CREATIVE_COMMAND"),
-                                    ChatColor.GREEN + "/" + command + ChatColor.RESET));
+                    plugin.message(event.getPlayer(),
+                            plugin.getM().get("NO_CREATIVE_COMMAND", new Arg("command", "/" + command)));
 
                 }
 

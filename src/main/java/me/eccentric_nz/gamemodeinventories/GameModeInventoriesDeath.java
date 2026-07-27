@@ -55,7 +55,7 @@ public class GameModeInventoriesDeath implements Listener {
         Player p = event.getPlayer();
         if (p.hasPermission("gamemodeinventories.use") && force) {
 
-            p.setGameMode(mode);
+            plugin.internalGameModeChange(p, mode);
 
         }
 

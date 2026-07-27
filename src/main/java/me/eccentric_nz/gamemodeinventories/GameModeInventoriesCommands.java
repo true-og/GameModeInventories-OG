@@ -7,6 +7,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
+import net.kyori.adventure.text.Component;
 import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -70,28 +71,36 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
 
                 if (!(sender instanceof Player player)) {
 
-                    sender.sendMessage(plugin.MY_PLUGIN_NAME + "This command can only be used by a player.");
+                    plugin.message(sender, Component.text("This command can only be used by a player."));
                     return true;
 
                 }
 
+                final GameMode target = player.getGameMode().equals(GameMode.CREATIVE) ? GameMode.SURVIVAL
+                        : GameMode.CREATIVE;
+                // the toggle permission is often per region, so a denial may be local
                 if (!player.hasPermission("gamemodeinventories.toggle")) {
 
-                    player.sendMessage(plugin.MY_PLUGIN_NAME + plugin.getM().getMessage().get("NO_PERMISSION"));
+                    sendDenial(player, target);
                     return true;
 
                 }
 
-                GameMode target = player.getGameMode().equals(GameMode.CREATIVE) ? GameMode.SURVIVAL
-                        : GameMode.CREATIVE;
                 player.setGameMode(target);
+                if (!player.getGameMode().equals(target)) {
+
+                    // another plugin cancelled the event, likely a region plugin
+                    sendDenial(player, target);
+
+                }
+
                 return true;
 
             }
 
             if (args.length == 0) {
 
-                sender.sendMessage(plugin.MY_PLUGIN_NAME + plugin.getM().getMessage().get("HELP"));
+                plugin.message(sender, plugin.getM().get("HELP"));
                 return true;
 
             }
@@ -101,8 +110,8 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
                 String option = args[0].toLowerCase(Locale.ENGLISH);
                 if (args.length == 1 && firstArgs.containsKey(option)) {
 
-                    sender.sendMessage(plugin.MY_PLUGIN_NAME + "config.yml is immutable; update '" + option
-                            + "' manually if you want to change it.");
+                    plugin.message(sender, Component.text(
+                            "config.yml is immutable; update '" + option + "' manually if you want to change it."));
                     return true;
 
                 } else if (args.length == 2 && option.equals("kit")) {
@@ -153,7 +162,7 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
 
                                 }
 
-                                p.sendMessage(plugin.MY_PLUGIN_NAME + "Kit inventory saved.");
+                                plugin.message(p, Component.text("Kit inventory saved."));
 
                             }
 
@@ -195,7 +204,7 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
 
                                     }
 
-                                    p.sendMessage(plugin.MY_PLUGIN_NAME + "Kit inventory loaded.");
+                                    plugin.message(p, Component.text("Kit inventory loaded."));
 
                                 }
 
@@ -215,7 +224,7 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
 
             } else {
 
-                sender.sendMessage(plugin.MY_PLUGIN_NAME + plugin.getM().getMessage().get("NO_PERMISSION"));
+                plugin.message(sender, plugin.getM().get("NO_PERMISSION"));
                 return true;
 
             }
@@ -242,6 +251,14 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
         }
 
         return ImmutableList.of();
+
+    }
+
+    // Tells the player why the toggle failed - Creative denials name the region.
+    private void sendDenial(Player player, GameMode target) {
+
+        final String key = target.equals(GameMode.CREATIVE) ? "NO_CREATIVE_REGION" : "NO_PERMISSION";
+        plugin.message(player, plugin.getM().get(key));
 
     }
 

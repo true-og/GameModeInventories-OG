@@ -5,6 +5,7 @@ package me.eccentric_nz.gamemodeinventories;
 
 import java.util.Arrays;
 import java.util.List;
+import net.kyori.adventure.text.Component;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -93,11 +94,11 @@ public class GameModeInventoriesEntityListener implements Listener {
             {
 
                 event.setCancelled(true);
-                String message = plugin.getM().getMessage().get("NO_CREATIVE_BREAK");
+                Component message = plugin.getM().get("NO_CREATIVE_BREAK");
                 if (plugin.getConfig().getBoolean("track_creative_place.break_no_drop")) {
 
                     event.getEntity().remove();
-                    message = plugin.getM().getMessage().get("NO_CREATIVE_DROPS");
+                    message = plugin.getM().get("NO_CREATIVE_DROPS");
 
                 }
 
@@ -106,7 +107,7 @@ public class GameModeInventoriesEntityListener implements Listener {
                     Entity damager = event.getDamager();
                     if (damager instanceof Player player) {
 
-                        player.sendMessage(plugin.MY_PLUGIN_NAME + message);
+                        plugin.message(player, message);
 
                     }
 

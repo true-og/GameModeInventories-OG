@@ -63,8 +63,7 @@ public class GameModeInventoriesListener implements Listener {
 
             } catch (IllegalArgumentException e) {
 
-                plugin.getLogger().log(Level.INFO,
-                        plugin.MY_PLUGIN_NAME + "Illegal material name " + m + " in containers list!");
+                plugin.getLogger().log(Level.INFO, "Illegal material name " + m + " in containers list!");
 
             }
 
@@ -90,7 +89,7 @@ public class GameModeInventoriesListener implements Listener {
         {
 
             event.setCancelled(true);
-            p.sendMessage(plugin.MY_PLUGIN_NAME + plugin.getM().getMessage().get("NO_SPECTATOR"));
+            plugin.message(p, plugin.getM().get("NO_SPECTATOR"));
             return;
 
         }
@@ -174,9 +173,8 @@ public class GameModeInventoriesListener implements Listener {
         }
 
         Location from = event.getFrom();
-        if (player.getGameMode().equals(GameMode.CREATIVE)
-                && (from.getBlockX() != to.getBlockX() || from.getBlockY() != to.getBlockY()
-                        || from.getBlockZ() != to.getBlockZ())
+        if (player.getGameMode().equals(GameMode.CREATIVE) && (from.getBlockX() != to.getBlockX()
+                || from.getBlockY() != to.getBlockY() || from.getBlockZ() != to.getBlockZ())
                 && !canUseCreativeAt(player, to))
         {
 
@@ -232,6 +230,35 @@ public class GameModeInventoriesListener implements Listener {
 
     }
 
+    // Say why when another plugin drops a player out of Creative.
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onForcedSurvival(PlayerGameModeChangeEvent event) {
+
+        final Player p = event.getPlayer();
+        // at MONITOR the change is not applied, so getGameMode() is the old mode
+        if (!event.getNewGameMode().equals(GameMode.SURVIVAL) || !p.getGameMode().equals(GameMode.CREATIVE)) {
+
+            return;
+
+        }
+
+        // only plugin driven Creative removal counts, not /gamemode
+        if (!event.getCause().equals(PlayerGameModeChangeEvent.Cause.PLUGIN) || plugin.isInternalGameModeChange(p)) {
+
+            return;
+
+        }
+
+        if (p.hasPermission("gamemodeinventories.toggle")) {
+
+            return;
+
+        }
+
+        plugin.message(p, plugin.getM().get("FORCED_SURVIVAL"));
+
+    }
+
     @EventHandler(ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
 
@@ -257,7 +284,7 @@ public class GameModeInventoriesListener implements Listener {
                     event.setCancelled(true);
                     if (!plugin.getConfig().getBoolean("dont_spam_chat")) {
 
-                        p.sendMessage(plugin.MY_PLUGIN_NAME + plugin.getM().getMessage().get("NO_CREATIVE_INVENTORY"));
+                        plugin.message(p, plugin.getM().get("NO_CREATIVE_INVENTORY"));
 
                     }
 
@@ -298,7 +325,7 @@ public class GameModeInventoriesListener implements Listener {
                         inv.clear();
                         if (!plugin.getConfig().getBoolean("dont_spam_chat")) {
 
-                            p.sendMessage(plugin.MY_PLUGIN_NAME + plugin.getM().getMessage().get("NO_WORKBENCH_DROPS"));
+                            plugin.message(p, plugin.getM().get("NO_WORKBENCH_DROPS"));
 
                         }
 
@@ -325,7 +352,7 @@ public class GameModeInventoriesListener implements Listener {
 
                 if (!plugin.getConfig().getBoolean("dont_spam_chat")) {
 
-                    p.sendMessage(plugin.MY_PLUGIN_NAME + plugin.getM().getMessage().get("NO_CREATIVE_INVENTORY"));
+                    plugin.message(p, plugin.getM().get("NO_CREATIVE_INVENTORY"));
 
                 }
 
@@ -356,7 +383,7 @@ public class GameModeInventoriesListener implements Listener {
                 event.setCancelled(true);
                 if (!plugin.getConfig().getBoolean("dont_spam_chat")) {
 
-                    p.sendMessage(plugin.MY_PLUGIN_NAME + plugin.getM().getMessage().get("NO_PLAYER_DROPS"));
+                    plugin.message(p, plugin.getM().get("NO_PLAYER_DROPS"));
 
                 }
 
@@ -377,7 +404,7 @@ public class GameModeInventoriesListener implements Listener {
                 event.setCancelled(true);
                 if (!plugin.getConfig().getBoolean("dont_spam_chat")) {
 
-                    player.sendMessage(plugin.MY_PLUGIN_NAME + plugin.getM().getMessage().get("NO_CREATIVE_PICKUP"));
+                    plugin.message(player, plugin.getM().get("NO_CREATIVE_PICKUP"));
 
                 }
 
@@ -401,7 +428,7 @@ public class GameModeInventoriesListener implements Listener {
                 event.setCancelled(true);
                 if (!plugin.getConfig().getBoolean("dont_spam_chat")) {
 
-                    p.sendMessage(plugin.MY_PLUGIN_NAME + plugin.getM().getMessage().get("NO_CREATIVE_HORSE"));
+                    plugin.message(p, plugin.getM().get("NO_CREATIVE_HORSE"));
 
                 }
 

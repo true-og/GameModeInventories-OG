@@ -6,16 +6,22 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import me.eccentric_nz.gamemodeinventories.database.*;
+import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.PluginManager;
@@ -25,12 +31,13 @@ import org.bukkit.scheduler.BukkitTask;
 public class GameModeInventories extends JavaPlugin {
 
     public static GameModeInventories plugin;
-    public final String MY_PLUGIN_NAME = ChatColor.GOLD + "[GameModeInventories] " + ChatColor.RESET;
+    public final Component MY_PLUGIN_NAME = Component.text("[GameModeInventories] ", NamedTextColor.GOLD);
     private final HashMap<String, List<String>> creativeBlocks = new HashMap<>();
     private final List<Material> blackList = new ArrayList<>();
     private final List<Material> noTrackList = new ArrayList<>();
     private final List<String> points = new ArrayList<>();
     private final List<UUID> stands = new ArrayList<>();
+    private final Set<UUID> internalSwitches = new HashSet<>();
     public BukkitTask recordingTask;
     private GameModeInventoriesInventory inventoryHandler;
     private GameModeInventoriesBlock block;
@@ -170,8 +177,8 @@ public class GameModeInventories extends JavaPlugin {
 
         } else {
 
-            getServer().getConsoleSender().sendMessage(MY_PLUGIN_NAME + ChatColor.RED
-                    + "This plugin requires CraftBukkit/Spigot 1.9 or higher, disabling...");
+            message(getServer().getConsoleSender(), Component
+                    .text("This plugin requires CraftBukkit/Spigot 1.9 or higher, disabling...", NamedTextColor.RED));
             pm.disablePlugin(this);
 
         }
@@ -255,7 +262,7 @@ public class GameModeInventories extends JavaPlugin {
 
         } catch (ClassNotFoundException e) {
 
-            getServer().getConsoleSender().sendMessage(MY_PLUGIN_NAME + "Connection and Tables Error: " + e);
+            message(getServer().getConsoleSender(), Component.text("Connection and Tables Error: " + e));
 
         }
 
@@ -307,13 +314,43 @@ public class GameModeInventories extends JavaPlugin {
 
     }
 
+    // Flags plugin driven mode changes so forced Survival stays quiet.
+    public void internalGameModeChange(Player p, GameMode mode) {
+
+        internalSwitches.add(p.getUniqueId());
+        try {
+
+            p.setGameMode(mode);
+
+        } finally {
+
+            internalSwitches.remove(p.getUniqueId());
+
+        }
+
+    }
+
+    public boolean isInternalGameModeChange(Player p) {
+
+        return internalSwitches.contains(p.getUniqueId());
+
+    }
+
+    // Sends a message to a player or the console with the plugin prefix in front.
+    public void message(Audience audience, Component body) {
+
+        // empty root keeps the gold prefix from bleeding into the message body
+        audience.sendMessage(Component.empty().append(MY_PLUGIN_NAME).append(body));
+
+    }
+
     public void debug(Object o, GMIDebug b) {
 
         if (getConfig().getBoolean("debug") == true) {
 
             if (b.equals(db_level) || b.equals(GMIDebug.ALL)) {
 
-                getServer().getConsoleSender().sendMessage(MY_PLUGIN_NAME + "Debug: " + o);
+                message(getServer().getConsoleSender(), Component.text("Debug: " + o));
 
             }
 
@@ -362,8 +399,7 @@ public class GameModeInventories extends JavaPlugin {
 
             } catch (IllegalArgumentException iae) {
 
-                getServer().getConsoleSender()
-                        .sendMessage(MY_PLUGIN_NAME + m.getMessage().get("INVALID_MATERIAL") + " " + s);
+                message(getServer().getConsoleSender(), m.get("INVALID_MATERIAL").append(Component.text(" " + s)));
 
             }
 
@@ -388,8 +424,8 @@ public class GameModeInventories extends JavaPlugin {
 
             } catch (IllegalArgumentException iae) {
 
-                getServer().getConsoleSender()
-                        .sendMessage(MY_PLUGIN_NAME + m.getMessage().get("INVALID_MATERIAL_TRACK") + " " + s);
+                message(getServer().getConsoleSender(),
+                        m.get("INVALID_MATERIAL_TRACK").append(Component.text(" " + s)));
 
             }
 

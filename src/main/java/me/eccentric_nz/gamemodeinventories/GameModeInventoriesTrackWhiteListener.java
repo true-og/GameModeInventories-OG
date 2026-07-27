@@ -3,6 +3,8 @@
  */
 package me.eccentric_nz.gamemodeinventories;
 
+import me.eccentric_nz.gamemodeinventories.GameModeInventoriesMessage.Arg;
+import net.kyori.adventure.text.Component;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -68,7 +70,7 @@ public class GameModeInventoriesTrackWhiteListener implements Listener {
 
                 } else {
 
-                    String message;
+                    Component message;
                     if (plugin.getConfig().getBoolean("track_creative_place.break_no_drop")) {
 
                         // remove the location from the creative blocks list because we're removing the
@@ -86,18 +88,18 @@ public class GameModeInventoriesTrackWhiteListener implements Listener {
 
                         block.setType(Material.AIR);
                         block.getDrops().clear();
-                        message = plugin.getM().getMessage().get("NO_CREATIVE_DROPS");
+                        message = plugin.getM().get("NO_CREATIVE_DROPS");
 
                     } else {
 
                         event.setCancelled(true);
-                        message = plugin.getM().getMessage().get("NO_CREATIVE_BREAK");
+                        message = plugin.getM().get("NO_CREATIVE_BREAK");
 
                     }
 
                     if (!plugin.getConfig().getBoolean("dont_spam_chat")) {
 
-                        p.sendMessage(plugin.MY_PLUGIN_NAME + message);
+                        plugin.message(p, message);
 
                     }
 
@@ -143,8 +145,7 @@ public class GameModeInventoriesTrackWhiteListener implements Listener {
             event.setCancelled(true);
             if (!plugin.getConfig().getBoolean("dont_spam_chat")) {
 
-                p.sendMessage(plugin.MY_PLUGIN_NAME
-                        + String.format(plugin.getM().getMessage().get("NO_CREATIVE_PLACE"), mat.toString()));
+                plugin.message(p, plugin.getM().get("NO_CREATIVE_PLACE", new Arg("material", mat.toString())));
 
             }
 

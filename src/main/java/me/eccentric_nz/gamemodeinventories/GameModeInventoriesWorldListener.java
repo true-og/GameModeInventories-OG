@@ -80,7 +80,7 @@ public class GameModeInventoriesWorldListener implements Listener {
         World to = p.getWorld();
         if (from != to) {
 
-            p.setGameMode(GameMode.SURVIVAL);
+            plugin.internalGameModeChange(p, GameMode.SURVIVAL);
 
         }
 
