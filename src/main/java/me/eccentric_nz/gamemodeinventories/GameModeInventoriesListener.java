@@ -78,8 +78,15 @@ public class GameModeInventoriesListener implements Listener {
         GameMode newGM = event.getNewGameMode();
         if (newGM.equals(GameMode.CREATIVE) && !canUseCreativeAt(p, p.getLocation())) {
 
+            // cancelling leaves them in the mode they were already in
             event.setCancelled(true);
-            forceSurvival(p);
+            // /gmic reports its own denial, so only speak for other routes into Creative
+            if (!plugin.isInternalGameModeChange(p)) {
+
+                plugin.message(p, plugin.getM().get("NO_CREATIVE_REGION"));
+
+            }
+
             return;
 
         }
@@ -249,7 +256,7 @@ public class GameModeInventoriesListener implements Listener {
 
         }
 
-        if (p.hasPermission("gamemodeinventories.toggle")) {
+        if (p.hasPermission("gamemodeinventories.toggle") || p.hasPermission("gamemodeinventories.anywhere")) {
 
             return;
 
@@ -454,7 +461,10 @@ public class GameModeInventoriesListener implements Listener {
 
     private void forceSurvival(Player player) {
 
-        if (!player.isOnline() || player.getGameMode().equals(GameMode.SURVIVAL)) {
+        // the anywhere permission keeps a player in whatever mode they chose
+        if (!player.isOnline() || player.getGameMode().equals(GameMode.SURVIVAL)
+                || player.hasPermission("gamemodeinventories.anywhere"))
+        {
 
             return;
 
@@ -462,7 +472,9 @@ public class GameModeInventoriesListener implements Listener {
 
         protectedFromForcedFall.add(player.getUniqueId());
         player.setFallDistance(0.0F);
-        player.setGameMode(GameMode.SURVIVAL);
+        // flagged as plugin driven so the generic notice does not double up
+        plugin.internalGameModeChange(player, GameMode.SURVIVAL);
+        plugin.message(player, plugin.getM().get("FORCED_SURVIVAL"));
         plugin.getServer().getScheduler().runTask(plugin, () -> {
 
             if (player.isOnline() && player.isOnGround()) {

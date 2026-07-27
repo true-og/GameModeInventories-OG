@@ -86,7 +86,8 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
 
                 }
 
-                player.setGameMode(target);
+                // flagged as plugin driven so the region listener skips its denial
+                plugin.internalGameModeChange(player, target);
                 if (!player.getGameMode().equals(target)) {
 
                     // another plugin cancelled the event, likely a region plugin
