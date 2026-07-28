@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import me.eccentric_nz.gamemodeinventories.api.GameModePolicy;
 import me.eccentric_nz.gamemodeinventories.database.*;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
@@ -25,6 +26,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.PluginManager;
+import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -40,6 +42,7 @@ public class GameModeInventories extends JavaPlugin {
     private final Set<UUID> internalSwitches = new HashSet<>();
     public BukkitTask recordingTask;
     private GameModeInventoriesInventory inventoryHandler;
+    private GameModePolicy gameModePolicy;
     private GameModeInventoriesBlock block;
     private GameModeInventoriesMessage m;
     private GameModeInventoriesBlockLogger blockLogger;
@@ -146,6 +149,10 @@ public class GameModeInventories extends JavaPlugin {
             }
 
             inventoryHandler = new GameModeInventoriesInventory(this);
+            // Published before the listeners so anything reacting to enable can read it.
+            gameModePolicy = new GameModePolicy(this);
+            getServer().getServicesManager().register(GameModePolicy.class, gameModePolicy, this,
+                    ServicePriority.Normal);
             pm.registerEvents(new GameModeInventoriesListener(this), this);
             pm.registerEvents(new GameModeInventoriesChunkLoadListener(this), this);
             pm.registerEvents(new GameModeInventoriesDeath(this), this);
@@ -311,6 +318,15 @@ public class GameModeInventories extends JavaPlugin {
     public GameModeInventoriesBlockLogger getBlockLogger() {
 
         return blockLogger;
+
+    }
+
+    // The gamemode rules this server enforces. Also registered with the Bukkit
+    // services manager; plugins that cannot compile against this one reach it
+    // reflectively through this getter.
+    public GameModePolicy getGameModePolicy() {
+
+        return gameModePolicy;
 
     }
 

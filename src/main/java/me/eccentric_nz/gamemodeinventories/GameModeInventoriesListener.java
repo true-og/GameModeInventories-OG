@@ -1,9 +1,5 @@
 package me.eccentric_nz.gamemodeinventories;
 
-import com.sk89q.worldedit.bukkit.BukkitAdapter;
-import com.sk89q.worldguard.WorldGuard;
-import com.sk89q.worldguard.protection.ApplicableRegionSet;
-import com.sk89q.worldguard.protection.regions.RegionContainer;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -11,7 +7,6 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -39,22 +34,11 @@ public class GameModeInventoriesListener implements Listener {
 
     private final GameModeInventories plugin;
     private final List<Material> containers = new ArrayList<>();
-    private final Set<String> creativeRegions = new HashSet<>();
     private final Set<UUID> protectedFromForcedFall = new HashSet<>();
-    private final RegionContainer regionContainer;
 
     public GameModeInventoriesListener(GameModeInventories plugin) {
 
         this.plugin = plugin;
-        regionContainer = WorldGuard.getInstance().getPlatform().getRegionContainer();
-        List<String> configuredRegions = this.plugin.getConfig().getStringList("creative_regions");
-        if (configuredRegions.isEmpty()) {
-
-            configuredRegions = List.of("spawn");
-
-        }
-
-        configuredRegions.stream().map(region -> region.toLowerCase(Locale.ROOT)).forEach(creativeRegions::add);
         for (String m : this.plugin.getConfig().getStringList("containers")) {
 
             try {
@@ -91,9 +75,7 @@ public class GameModeInventoriesListener implements Listener {
 
         }
 
-        if (newGM.equals(GameMode.SPECTATOR) && plugin.getConfig().getBoolean("restrict_spectator")
-                && !p.hasPermission("gamemodeinventories.spectator") && !p.hasPermission("noclip.use"))
-        {
+        if (newGM.equals(GameMode.SPECTATOR) && !plugin.getGameModePolicy().mayUseSpectator(p)) {
 
             event.setCancelled(true);
             plugin.message(p, plugin.getM().get("NO_SPECTATOR"));
@@ -206,6 +188,15 @@ public class GameModeInventoriesListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+
+        // Spawn-OG normalizes logins inside a safety transaction that also relocates
+        // the player. Forcing survival underneath it would race that transaction, so
+        // this handler only covers servers running without it.
+        if (plugin.getServer().getPluginManager().isPluginEnabled("Spawn-OG")) {
+
+            return;
+
+        }
 
         Player player = event.getPlayer();
         if (player.getGameMode().equals(GameMode.CREATIVE) && !canUseCreativeAt(player, player.getLocation())) {
@@ -445,17 +436,11 @@ public class GameModeInventoriesListener implements Listener {
 
     }
 
+    // Both region and permission rules live in GameModePolicy so this plugin and
+    // its consumers cannot drift apart on where creative is allowed.
     private boolean canUseCreativeAt(Player player, Location location) {
 
-        if (player.hasPermission("gamemodeinventories.anywhere")) {
-
-            return true;
-
-        }
-
-        ApplicableRegionSet regions = regionContainer.createQuery().getApplicableRegions(BukkitAdapter.adapt(location));
-        return regions.getRegions().stream()
-                .anyMatch(region -> creativeRegions.contains(region.getId().toLowerCase(Locale.ROOT)));
+        return plugin.getGameModePolicy().mayUseCreativeAt(player, location);
 
     }
 
