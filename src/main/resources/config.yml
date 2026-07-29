@@ -12,6 +12,9 @@ no_wither_spawn: true
 no_golem_spawn: true
 remove_potions: false
 restrict_creative: true
+# Where creative is allowed, for players who also hold gamemodeinventories.toggle.
+# Both are required, so an ordinary player standing here cannot hold creative.
+# gamemodeinventories.anywhere ignores this list.
 creative_regions:
 - spawn
 # Worlds where adventure is refused, so it cannot stick where survival rules

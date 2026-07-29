@@ -22,6 +22,7 @@ import org.bukkit.entity.Player;
 public final class GameModePolicy {
 
     public static final String ANYWHERE_PERMISSION = "gamemodeinventories.anywhere";
+    public static final String TOGGLE_PERMISSION = "gamemodeinventories.toggle";
     public static final String SPECTATOR_PERMISSION = "gamemodeinventories.spectator";
     public static final String NOCLIP_PERMISSION = "noclip.use";
 
@@ -77,12 +78,15 @@ public final class GameModePolicy {
 
     }
 
-    // Creative is allowed server wide by permission, otherwise only in a creative
-    // region.
+    // Creative is staff only. The permission says who, the region says where, and
+    // both are required: being inside a creative region is not a licence for an
+    // ordinary player who reached creative by some other route.
     public boolean mayUseCreativeAt(Player player, Location location) {
 
         if (player.hasPermission(ANYWHERE_PERMISSION))
             return true;
+        if (!player.hasPermission(TOGGLE_PERMISSION))
+            return false;
         if (location == null || location.getWorld() == null)
             return false;
 
