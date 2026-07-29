@@ -48,8 +48,8 @@ public final class GameModePolicy {
     }
 
     // Whether this plugin's rules permit the player to be in the gamemode at the
-    // location. Survival is always permitted; adventure never is, because this
-    // plugin does not grant it; creative and spectator follow the rules below.
+    // location. Survival is always permitted; creative, spectator, and adventure
+    // follow the rules below.
     public boolean mayUse(Player player, GameMode gameMode, Location location) {
 
         return switch (gameMode) {
@@ -57,9 +57,23 @@ public final class GameModePolicy {
             case SURVIVAL -> true;
             case CREATIVE -> mayUseCreativeAt(player, location);
             case SPECTATOR -> mayUseSpectator(player);
-            default -> false;
+            case ADVENTURE -> mayUseAdventureAt(location);
 
         };
+
+    }
+
+    // Nothing grants adventure as a privilege, but minigames put their players in
+    // it legitimately, so it is refused only in the worlds that are meant to stay
+    // survival. Minigame worlds must be left off that list.
+    public boolean mayUseAdventureAt(Location location) {
+
+        if (location == null || location.getWorld() == null)
+            return true;
+
+        String world = location.getWorld().getName();
+        return plugin.getConfig().getStringList("restrict_adventure_worlds").stream()
+                .noneMatch(restricted -> restricted.equalsIgnoreCase(world));
 
     }
 

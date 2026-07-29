@@ -83,6 +83,16 @@ public class GameModeInventoriesListener implements Listener {
 
         }
 
+        // Cancelled rather than corrected, so adventure cannot stick in a world that
+        // is meant to stay survival.
+        if (newGM.equals(GameMode.ADVENTURE) && !plugin.getGameModePolicy().mayUseAdventureAt(p.getLocation())) {
+
+            event.setCancelled(true);
+            plugin.message(p, plugin.getM().get("NO_ADVENTURE"));
+            return;
+
+        }
+
         if (p.hasPermission("gamemodeinventories.use")) {
 
             if (p.isOnline()) {

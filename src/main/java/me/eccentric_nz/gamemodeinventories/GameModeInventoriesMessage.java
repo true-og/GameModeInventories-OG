@@ -63,6 +63,7 @@ public class GameModeInventoriesMessage {
         messageOptions.put("NO_PLAYER_DROPS", "<red>Error: <gold>You are not allowed to drop items in Creative mode!");
         messageOptions.put("NO_WORKBENCH_DROPS", "<red>Error: <gold>Workbenches do not drop items in Creative mode!");
         messageOptions.put("NO_SPECTATOR", "<red>Error: <gold>You are not allowed to be a Spectator!");
+        messageOptions.put("NO_ADVENTURE", "<red>Error: <gold>Adventure mode is not allowed in this world!");
         messageOptions.put("NO_TRADE",
                 "<red>Error: <gold>You are not allowed to trade with villagers in Creative mode!");
 

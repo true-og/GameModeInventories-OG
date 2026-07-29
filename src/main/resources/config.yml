@@ -14,6 +14,13 @@ remove_potions: false
 restrict_creative: true
 creative_regions:
 - spawn
+# Worlds where adventure is refused, so it cannot stick where survival rules
+# apply. Leave minigame worlds off this list: their plugins put players in
+# adventure legitimately and those changes must not be cancelled.
+restrict_adventure_worlds:
+- world
+- world_nether
+- world_the_end
 containers:
 - ANVIL
 - BARREL
