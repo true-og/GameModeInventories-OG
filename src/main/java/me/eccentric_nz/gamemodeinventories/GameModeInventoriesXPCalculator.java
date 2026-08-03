@@ -199,13 +199,8 @@ public class GameModeInventoriesXPCalculator {
 
         }
 
-        // Increment total experience - this should force the server to send an update
-        // packet
-        if (xp > base) {
-
-            p.setTotalExperience(p.getTotalExperience() + xp - (int) base);
-
-        }
+        // Keep the vanilla counter equal to the absolute total being applied
+        p.setTotalExperience(xp);
 
         double pct = (base - getXpForLevel(newLvl) + amt) / (double) (getXpNeededToLevelUp(newLvl));
         p.setExp((float) pct);

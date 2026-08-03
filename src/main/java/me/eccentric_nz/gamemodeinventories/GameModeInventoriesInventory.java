@@ -27,7 +27,6 @@ public class GameModeInventoriesInventory {
     private final boolean saveArmour;
     private final boolean saveEnderChest;
     private final boolean potions;
-    GameModeInventoriesXPCalculator xpc;
 
     public GameModeInventoriesInventory(GameModeInventories plugin) {
 
@@ -44,6 +43,7 @@ public class GameModeInventoriesInventory {
         String uuid = player.getUniqueId().toString();
         String name = player.getName();
         String currentGM = player.getGameMode().name();
+        GameModeInventoriesXPCalculator xpc = null;
         if (saveXP) {
 
             xpc = new GameModeInventoriesXPCalculator(player);
