@@ -78,8 +78,11 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
 
                 final GameMode target = player.getGameMode().equals(GameMode.CREATIVE) ? GameMode.SURVIVAL
                         : GameMode.CREATIVE;
-                // the toggle permission is often per region, so a denial may be local
-                if (!player.hasPermission("gamemodeinventories.toggle")) {
+                // the toggle permission is often per region, so a denial may be local;
+                // anywhere holders are sanctioned by policy even without toggle
+                if (!player.hasPermission("gamemodeinventories.toggle")
+                        && !player.hasPermission("gamemodeinventories.anywhere"))
+                {
 
                     sendDenial(player, target);
                     return true;

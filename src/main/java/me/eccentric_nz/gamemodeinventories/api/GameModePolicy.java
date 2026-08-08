@@ -111,4 +111,13 @@ public final class GameModePolicy {
 
     }
 
+    // The sanctioned programmatic gamemode switch for other plugins. Flagged as
+    // plugin driven so this plugin's region listener skips its denial, while the
+    // inventory swap still runs through the ordinary gamemode change event.
+    public void changeGameMode(Player player, GameMode gameMode) {
+
+        plugin.internalGameModeChange(player, gameMode);
+
+    }
+
 }
