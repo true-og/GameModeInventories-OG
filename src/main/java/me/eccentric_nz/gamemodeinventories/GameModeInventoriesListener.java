@@ -60,22 +60,20 @@ public class GameModeInventoriesListener implements Listener {
 
         Player p = event.getPlayer();
         GameMode newGM = event.getNewGameMode();
-        if (newGM.equals(GameMode.CREATIVE) && !canUseCreativeAt(p, p.getLocation())) {
+        // Internal switches (/gmic, the policy's changeGameMode) are
+        // pre-validated by their callers and trusted here; only external
+        // routes (/gamemode, other plugins) are policed and told why.
+        boolean internal = plugin.isInternalGameModeChange(p);
+        if (!internal && newGM.equals(GameMode.CREATIVE) && !canUseCreativeAt(p, p.getLocation())) {
 
             // cancelling leaves them in the mode they were already in
             event.setCancelled(true);
-            // /gmic reports its own denial, so only speak for other routes into Creative
-            if (!plugin.isInternalGameModeChange(p)) {
-
-                plugin.message(p, plugin.getM().get("NO_CREATIVE_REGION"));
-
-            }
-
+            plugin.message(p, plugin.getM().get("NO_CREATIVE_REGION"));
             return;
 
         }
 
-        if (newGM.equals(GameMode.SPECTATOR) && !plugin.getGameModePolicy().mayUseSpectator(p)) {
+        if (!internal && newGM.equals(GameMode.SPECTATOR) && !plugin.getGameModePolicy().mayUseSpectator(p)) {
 
             event.setCancelled(true);
             plugin.message(p, plugin.getM().get("NO_SPECTATOR"));
@@ -85,7 +83,9 @@ public class GameModeInventoriesListener implements Listener {
 
         // Cancelled rather than corrected, so adventure cannot stick in a world that
         // is meant to stay survival.
-        if (newGM.equals(GameMode.ADVENTURE) && !plugin.getGameModePolicy().mayUseAdventureAt(p.getLocation())) {
+        if (!internal && newGM.equals(GameMode.ADVENTURE)
+                && !plugin.getGameModePolicy().mayUseAdventureAt(p.getLocation()))
+        {
 
             event.setCancelled(true);
             plugin.message(p, plugin.getM().get("NO_ADVENTURE"));

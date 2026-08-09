@@ -89,11 +89,23 @@ public class GameModeInventoriesCommands implements CommandExecutor, TabComplete
 
                 }
 
-                // flagged as plugin driven so the region listener skips its denial
+                // the region rule is enforced here, before the switch: the
+                // listener trusts internal switches and no longer cancels them
+                if (target.equals(GameMode.CREATIVE)
+                        && !plugin.getGameModePolicy().mayUseCreativeAt(player, player.getLocation()))
+                {
+
+                    sendDenial(player, target);
+                    return true;
+
+                }
+
+                // pre-validated above, so the region listener trusts this
+                // internal switch; other plugins may still cancel it
                 plugin.internalGameModeChange(player, target);
                 if (!player.getGameMode().equals(target)) {
 
-                    // another plugin cancelled the event, likely a region plugin
+                    // another plugin cancelled the event
                     sendDenial(player, target);
 
                 }
