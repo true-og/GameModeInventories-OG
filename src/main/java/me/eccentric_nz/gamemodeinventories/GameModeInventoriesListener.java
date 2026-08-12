@@ -5,8 +5,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -34,6 +36,7 @@ public class GameModeInventoriesListener implements Listener {
 
     private final GameModeInventories plugin;
     private final List<Material> containers = new ArrayList<>();
+    private final Map<UUID, Location> pendingModeCheckLocations = new HashMap<>();
     private final Set<UUID> protectedFromForcedFall = new HashSet<>();
 
     public GameModeInventoriesListener(GameModeInventories plugin) {
@@ -55,6 +58,20 @@ public class GameModeInventoriesListener implements Listener {
 
     }
 
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void rememberMoveDestination(PlayerMoveEvent event) {
+
+        rememberModeCheckLocation(event.getPlayer(), event.getTo());
+
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void rememberTeleportDestination(PlayerTeleportEvent event) {
+
+        rememberModeCheckLocation(event.getPlayer(), event.getTo());
+
+    }
+
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onGameModeChange(PlayerGameModeChangeEvent event) {
 
@@ -64,7 +81,7 @@ public class GameModeInventoriesListener implements Listener {
         // pre-validated by their callers and trusted here; only external
         // routes (/gamemode, other plugins) are policed and told why.
         boolean internal = plugin.isInternalGameModeChange(p);
-        if (!internal && newGM.equals(GameMode.CREATIVE) && !canUseCreativeAt(p, p.getLocation())) {
+        if (!internal && newGM.equals(GameMode.CREATIVE) && !canUseCreativeAt(p, modeCheckLocation(p))) {
 
             // cancelling leaves them in the mode they were already in
             event.setCancelled(true);
@@ -154,6 +171,20 @@ public class GameModeInventoriesListener implements Listener {
 
     }
 
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void clearMoveDestination(PlayerMoveEvent event) {
+
+        pendingModeCheckLocations.remove(event.getPlayer().getUniqueId());
+
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void clearTeleportDestination(PlayerTeleportEvent event) {
+
+        pendingModeCheckLocations.remove(event.getPlayer().getUniqueId());
+
+    }
+
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onMove(PlayerMoveEvent event) {
 
@@ -235,6 +266,7 @@ public class GameModeInventoriesListener implements Listener {
     public void onQuit(PlayerQuitEvent event) {
 
         protectedFromForcedFall.remove(event.getPlayer().getUniqueId());
+        pendingModeCheckLocations.remove(event.getPlayer().getUniqueId());
 
     }
 
@@ -451,6 +483,22 @@ public class GameModeInventoriesListener implements Listener {
     private boolean canUseCreativeAt(Player player, Location location) {
 
         return plugin.getGameModePolicy().mayUseCreativeAt(player, location);
+
+    }
+
+    private Location modeCheckLocation(Player player) {
+
+        return pendingModeCheckLocations.getOrDefault(player.getUniqueId(), player.getLocation());
+
+    }
+
+    private void rememberModeCheckLocation(Player player, Location location) {
+
+        if (location != null) {
+
+            pendingModeCheckLocations.put(player.getUniqueId(), location);
+
+        }
 
     }
 
