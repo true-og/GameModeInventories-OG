@@ -12,9 +12,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesPistonListener implements Listener {
 
     private final GameModeInventories plugin;

@@ -7,9 +7,6 @@ import java.sql.*;
 import me.eccentric_nz.gamemodeinventories.GMIDebug;
 import me.eccentric_nz.gamemodeinventories.GameModeInventories;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesBlocksConverter {
 
     private final GameModeInventories plugin;
@@ -76,9 +73,8 @@ public class GameModeInventoriesBlocksConverter {
 
                                 // Execute the batch
                                 int[] updateCounts = ps.executeBatch();
-                                // All statements were successfully executed.
-                                // updateCounts contains one element for each batched statement.
-                                // updateCounts[i] contains the number of rows affected by that statement.
+                                // All statements executed: updateCounts holds one
+                                // element (rows affected) per batched statement.
                                 processUpdateCounts(updateCounts);
                                 // Since there were no errors, commit
                                 connection.commit();
@@ -96,10 +92,8 @@ public class GameModeInventoriesBlocksConverter {
 
                 // Not all of the statements were successfully executed
                 int[] updateCounts = ex.getUpdateCounts();
-                // Some databases will continue to execute after one fails.
-                // If so, updateCounts.length will equal the number of batched statements.
-                // If not, updateCounts.length will equal the number of successfully executed
-                // statements
+                // Some databases continue past a failure: updateCounts.length is then
+                // the batched count, otherwise the successfully executed count.
                 processUpdateCounts(updateCounts);
 
             }

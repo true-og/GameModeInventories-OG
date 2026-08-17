@@ -12,13 +12,8 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
-// The single authority on which gamemodes GameModeInventories-OG sanctions, and
-// where. Every enforcement point inside this plugin asks it, and it is published
-// so other plugins enforce the same rule instead of reimplementing it.
-//
-// Obtain it from the Bukkit services manager, or reflectively through
-// GameModeInventories#getGameModePolicy() when compiling against this plugin is
-// not practical.
+// The single authority on which gamemodes GameModeInventories-OG sanctions and where; published so other
+// plugins enforce the same rule. Obtain via the Bukkit services manager or GameModeInventories#getGameModePolicy().
 public final class GameModePolicy {
 
     public static final String ANYWHERE_PERMISSION = "gamemodeinventories.anywhere";
@@ -48,9 +43,8 @@ public final class GameModePolicy {
 
     }
 
-    // Whether this plugin's rules permit the player to be in the gamemode at the
-    // location. Survival is always permitted; creative, spectator, and adventure
-    // follow the rules below.
+    // Whether this plugin's rules permit the player to hold the gamemode at the
+    // location. Survival is always permitted; the rest follow the rules below.
     public boolean mayUse(Player player, GameMode gameMode, Location location) {
 
         return switch (gameMode) {
@@ -64,9 +58,8 @@ public final class GameModePolicy {
 
     }
 
-    // Nothing grants adventure as a privilege, but minigames put their players in
-    // it legitimately, so it is refused only in the worlds that are meant to stay
-    // survival. Minigame worlds must be left off that list.
+    // Minigames put players in adventure legitimately, so it is refused only in
+    // worlds meant to stay survival; minigame worlds must be left off that list.
     public boolean mayUseAdventureAt(Location location) {
 
         if (location == null || location.getWorld() == null)
@@ -78,9 +71,8 @@ public final class GameModePolicy {
 
     }
 
-    // Creative is staff only. The permission says who, the region says where, and
-    // both are required: being inside a creative region is not a licence for an
-    // ordinary player who reached creative by some other route.
+    // Creative is staff only. The permission says who, the region says where,
+    // and both are required: a region alone licenses no ordinary player.
     public boolean mayUseCreativeAt(Player player, Location location) {
 
         if (player.hasPermission(ANYWHERE_PERMISSION))
@@ -111,9 +103,8 @@ public final class GameModePolicy {
 
     }
 
-    // The sanctioned programmatic switch: validated against this policy first,
-    // then flagged internal so the region listener trusts it. False means
-    // refused here or cancelled by another plugin (read-back mismatch).
+    // The sanctioned programmatic switch: policy-validated, then flagged internal
+    // so the listener trusts it. False: refused here or cancelled elsewhere.
     public boolean changeGameMode(Player player, GameMode gameMode) {
 
         if (!mayUse(player, gameMode, player.getLocation()))

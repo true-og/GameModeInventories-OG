@@ -10,9 +10,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.world.ChunkLoadEvent;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesChunkLoadListener implements Listener {
 
     private final GameModeInventories plugin;

@@ -357,7 +357,6 @@ public class GameModeInventoriesInventory {
 
         String uuid = p.getUniqueId().toString();
         String gm = p.getGameMode().name();
-        // restore their inventory
         try (Connection connection = plugin.getDatabaseConnection();
                 PreparedStatement statement = connection.prepareStatement(
                         "SELECT * FROM " + plugin.getPrefix() + "inventories WHERE uuid = ? AND gamemode = ?");)

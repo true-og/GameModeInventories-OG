@@ -13,9 +13,6 @@ import me.eccentric_nz.gamemodeinventories.database.GameModeInventoriesMySQLConn
 import me.eccentric_nz.gamemodeinventories.database.GameModeInventoriesQueueData;
 import me.eccentric_nz.gamemodeinventories.database.GameModeInventoriesRecordingQueue;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesBlock {
 
     private final GameModeInventories plugin;

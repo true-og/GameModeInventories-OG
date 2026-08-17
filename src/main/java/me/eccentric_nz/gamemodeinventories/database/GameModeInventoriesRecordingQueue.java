@@ -6,18 +6,12 @@ public class GameModeInventoriesRecordingQueue {
 
     private static final LinkedBlockingQueue<GameModeInventoriesQueueData> QUEUE = new LinkedBlockingQueue<GameModeInventoriesQueueData>();
 
-    /**
-     * @return the size of the QUEUE
-     */
     public static int getQueueSize() {
 
         return QUEUE.size();
 
     }
 
-    /**
-     * @param data
-     */
     public static void addToQueue(final GameModeInventoriesQueueData data) {
 
         if (data == null) {
@@ -30,9 +24,6 @@ public class GameModeInventoriesRecordingQueue {
 
     }
 
-    /**
-     * @return the QUEUE
-     */
     public static LinkedBlockingQueue<GameModeInventoriesQueueData> getQUEUE() {
 
         return QUEUE;

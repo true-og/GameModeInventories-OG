@@ -17,9 +17,6 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesMessage {
 
     // Matches the colour codes of messages.yml files predating the MiniMessage
@@ -208,7 +205,6 @@ public class GameModeInventoriesMessage {
 
     public void updateMessages() {
 
-        // message values
         int m = 0;
         for (Map.Entry<String, String> entry : messageOptions.entrySet()) {
 

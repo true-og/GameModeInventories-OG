@@ -10,9 +10,6 @@ import java.sql.Statement;
 import java.util.logging.Level;
 import me.eccentric_nz.gamemodeinventories.GameModeInventories;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesSQLite {
 
     private final GameModeInventories plugin;

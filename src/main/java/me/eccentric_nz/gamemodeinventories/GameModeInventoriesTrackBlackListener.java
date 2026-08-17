@@ -17,9 +17,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesTrackBlackListener implements Listener {
 
     private final GameModeInventories plugin;
@@ -78,7 +75,7 @@ public class GameModeInventoriesTrackBlackListener implements Listener {
                 if (plugin.getConfig().getBoolean("track_creative_place.break_no_drop")) {
 
                     // remove the location from the creative blocks list because we're removing the
-                    // block!
+                    // block
                     plugin.getBlock().removeBlock(gmiwc, block.getLocation().toString());
                     if (plugin.getBlockLogger().isLogging()) {
 

@@ -77,9 +77,8 @@ public class GameModeInventoriesListener implements Listener {
 
         Player p = event.getPlayer();
         GameMode newGM = event.getNewGameMode();
-        // Internal switches (/gmic, the policy's changeGameMode) are
-        // pre-validated by their callers and trusted here; only external
-        // routes (/gamemode, other plugins) are policed and told why.
+        // Internal switches (/gmic, the policy's changeGameMode) are pre-validated
+        // and trusted; only external routes (/gamemode, other plugins) are policed.
         boolean internal = plugin.isInternalGameModeChange(p);
         if (!internal && newGM.equals(GameMode.CREATIVE) && !canUseCreativeAt(p, modeCheckLocation(p))) {
 
@@ -230,9 +229,8 @@ public class GameModeInventoriesListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
 
-        // Spawn-OG normalizes logins inside a safety transaction that also relocates
-        // the player. Forcing survival underneath it would race that transaction, so
-        // this handler only covers servers running without it.
+        // Spawn-OG normalizes logins in a transaction that also relocates; forcing
+        // survival underneath would race it, so this only covers servers without it.
         if (plugin.getServer().getPluginManager().isPluginEnabled("Spawn-OG")) {
 
             return;

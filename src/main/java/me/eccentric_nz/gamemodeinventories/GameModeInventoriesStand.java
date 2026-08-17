@@ -10,9 +10,6 @@ import java.sql.SQLException;
 import java.util.UUID;
 import java.util.logging.Level;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesStand {
 
     private final GameModeInventories plugin;

@@ -77,11 +77,7 @@ public class GameModeInventoriesDeath implements Listener {
 
     }
 
-    /**
-     * Gets the server values for force-gamemode and gamemode.
-     *
-     * @return whether the value is true or false.
-     */
+    // reads force-gamemode and gamemode from server.properties
     private ServerValues getServerForceGamemode() {
 
         FileInputStream in = null;

@@ -14,9 +14,6 @@ import me.eccentric_nz.gamemodeinventories.GMIDebug;
 import me.eccentric_nz.gamemodeinventories.GameModeInventories;
 import org.bukkit.scheduler.BukkitRunnable;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesBlockLoader extends BukkitRunnable {
 
     private final GameModeInventories plugin;

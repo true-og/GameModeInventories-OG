@@ -7,9 +7,6 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import me.eccentric_nz.gamemodeinventories.GameModeInventories;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesMySQLConnectionPool {
 
     private static boolean isMySQL = false;

@@ -26,9 +26,6 @@ import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
 import org.yaml.snakeyaml.external.biz.base64Coder.Base64Coder;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesBukkitSerialization {
 
     public static String toDatabase(ItemStack[] inventory) {
@@ -36,7 +33,6 @@ public class GameModeInventoriesBukkitSerialization {
         try {
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            // Write the size of the inventory
             try (BukkitObjectOutputStream dataOutput = new BukkitObjectOutputStream(outputStream)) {
 
                 // Write the size of the inventory
@@ -52,7 +48,6 @@ public class GameModeInventoriesBukkitSerialization {
                             SkullMeta skullMeta = (SkullMeta) is.getItemMeta();
                             if (skullMeta.getOwnerProfile() == null) {
 
-                                // remove item meta
                                 is.setItemMeta(null);
 
                             }
@@ -65,7 +60,6 @@ public class GameModeInventoriesBukkitSerialization {
 
                 }
 
-                // Serialize that array
             }
 
             return Base64Coder.encodeLines(outputStream.toByteArray());

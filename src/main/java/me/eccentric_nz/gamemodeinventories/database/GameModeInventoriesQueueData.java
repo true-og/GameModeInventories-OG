@@ -3,9 +3,6 @@
  */
 package me.eccentric_nz.gamemodeinventories.database;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesQueueData {
 
     private final String worldchunk;

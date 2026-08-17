@@ -8,9 +8,6 @@ import net.coreprotect.CoreProtect;
 import net.coreprotect.CoreProtectAPI;
 import org.bukkit.plugin.PluginManager;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesBlockLogger {
 
     private final GameModeInventories plugin;

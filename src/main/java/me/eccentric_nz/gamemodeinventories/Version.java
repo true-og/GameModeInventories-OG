@@ -16,11 +16,8 @@
  */
 package me.eccentric_nz.gamemodeinventories;
 
-/**
- * Class to compare version strings. Borrowed from StackOverflow.
- *
- * @author alex http://stackoverflow.com/users/1445568/alex
- */
+// Compares dotted version strings numerically.
+// Borrowed from StackOverflow user alex (http://stackoverflow.com/users/1445568/alex).
 public class Version implements Comparable<Version> {
 
     private final String version;

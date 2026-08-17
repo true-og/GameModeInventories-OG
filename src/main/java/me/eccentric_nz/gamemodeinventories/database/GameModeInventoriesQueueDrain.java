@@ -5,23 +5,14 @@ import me.eccentric_nz.gamemodeinventories.GameModeInventories;
 
 public class GameModeInventoriesQueueDrain {
 
-    /**
-     *
-     */
     private final GameModeInventories plugin;
 
-    /**
-     * @param plugin
-     */
     public GameModeInventoriesQueueDrain(GameModeInventories plugin) {
 
         this.plugin = plugin;
 
     }
 
-    /**
-     *
-     */
     public void forceDrainQueue() {
 
         plugin.debug("Forcing recorder queue to run a new batch before shutdown...", GMIDebug.INFO);

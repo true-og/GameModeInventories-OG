@@ -12,9 +12,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPhysicsEvent;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesPhysicsListener implements Listener {
 
     private final GameModeInventories plugin;

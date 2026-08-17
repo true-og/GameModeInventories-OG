@@ -10,9 +10,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesCommandListener implements Listener {
 
     private final GameModeInventories plugin;

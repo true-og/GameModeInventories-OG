@@ -16,9 +16,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesEntityListener implements Listener {
 
     private final GameModeInventories plugin;

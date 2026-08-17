@@ -12,10 +12,8 @@ import java.util.logging.Level;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
-// Checks the deployed config.yml against the canonical one bundled in the jar.
-// There is no defaults map: the bundled file is the only description of what
-// this plugin reads, so options cannot go missing from it or drift out of step
-// with a second copy in code. Nothing is written back, ever.
+// Checks the deployed config.yml against the canonical one bundled in the jar; there is no defaults
+// map, so the bundled file is the only description of what this plugin reads. Nothing is written back, ever.
 public class GameModeInventoriesConfig {
 
     private final GameModeInventories plugin;

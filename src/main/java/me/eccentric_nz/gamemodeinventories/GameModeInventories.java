@@ -242,9 +242,6 @@ public class GameModeInventories extends JavaPlugin {
 
     }
 
-    /**
-     * Sets up the database.
-     */
     private void loadDatabase() {
 
         String dbtype = getConfig().getString("storage.database");
@@ -305,9 +302,7 @@ public class GameModeInventories extends JavaPlugin {
 
     }
 
-    /**
-     * Loads block logger support if available
-     */
+    // Loads block logger support if available.
     public void setUpBlockLogger() {
 
         blockLogger = new GameModeInventoriesBlockLogger(this);
@@ -321,9 +316,8 @@ public class GameModeInventories extends JavaPlugin {
 
     }
 
-    // The gamemode rules this server enforces. Also registered with the Bukkit
-    // services manager; plugins that cannot compile against this one reach it
-    // reflectively through this getter.
+    // The gamemode rules this server enforces; also on the services manager, and
+    // plugins that cannot compile against this one reach it via this getter.
     public GameModePolicy getGameModePolicy() {
 
         return gameModePolicy;

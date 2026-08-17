@@ -26,11 +26,7 @@ import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
 import org.bukkit.inventory.ItemStack;
 
-/**
- * Fancy JSON serialization mostly by evilmidget38.
- *
- * @author eccentric_nz
- */
+// Fancy JSON serialization mostly by evilmidget38.
 public class GameModeInventoriesJSONSerialization {
 
     public static Map<String, Object> toMap(JSONObject object) throws JSONException {

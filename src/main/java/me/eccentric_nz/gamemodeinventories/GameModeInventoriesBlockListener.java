@@ -21,9 +21,6 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesBlockListener implements Listener {
 
     private final GameModeInventories plugin;

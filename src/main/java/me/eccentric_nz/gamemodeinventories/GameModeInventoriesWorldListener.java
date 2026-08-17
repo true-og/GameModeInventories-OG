@@ -16,9 +16,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
-/**
- * @author eccentric_nz
- */
 public class GameModeInventoriesWorldListener implements Listener {
 
     private final GameModeInventories plugin;
@@ -32,37 +29,8 @@ public class GameModeInventoriesWorldListener implements Listener {
     @EventHandler
     public void onWorldChange(PlayerChangedWorldEvent event) {
 
-        // if (plugin.getConfig().getBoolean("creative_world.switch_to")) {
-        // Player p = event.getPlayer();
-        // String uuid = p.getUniqueId().toString();
-        // // player changed worlds, record last location
-        // // check if the player has a record for this world
-        // try (
-        // Connection connection = GameModeInventoriesConnectionPool.dbc();
-        // PreparedStatement statement = connection.prepareStatement("SELECT * FROM
-        // worlds WHERE uuid
-        // = ? AND world = ?");
-        // ) {
-        // statement.setString(1, uuid);
-        // statement.setString(2, p.getWorld().getName());
-        // try (ResultSet rs = statement.executeQuery();) {
-        // if (rs.next()) {
-        // World w = plugin.getServer().getWorld(rs.getString("world"));
-        // if (w != null) {
-        // double x = rs.getDouble("x");
-        // double y = rs.getDouble("y");
-        // double z = rs.getDouble("z");
-        // float yaw = rs.getFloat("yaw");
-        // float pitch = rs.getFloat("pitch");
-        // Location loc = new Location(w, x, y, z, yaw, pitch);
-        // p.teleport(loc);
-        // }
-        // }
-        // }
-        // } catch (SQLException e) {
-        // plugin.debug("Could not get creative world location, " + e);
-        // }
-        // }
+        // Disabled feature: with creative_world.switch_to set, look up the player's
+        // saved location for this world and teleport them back to it.
         if (!plugin.getConfig().getBoolean("survival_on_world_change")) {
 
             return;

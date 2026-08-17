@@ -5,20 +5,8 @@ import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import org.bukkit.entity.Player;
 
-/**
- * @author desht
- *         <p>
- *         Adapted from ExperienceUtils code originally in ScrollingMenuSign.
- *         <p>
- *         Credit to nisovin
- *         (http://forums.bukkit.org/threads/experienceutils-make-giving-taking-exp-a-bit-more-intuitive.54450/#post-1067480)
- *         for an implementation that avoids the problems of
- *         getTotalExperience(), which doesn't work properly after a player has
- *         enchanted something.
- *         <p>
- *         Credit to comphenix for further contributions: See
- *         http://forums.bukkit.org/threads/experiencemanager-was-experienceutils-make-giving-taking-exp-a-bit-more-intuitive.54450/page-3#post-1273622
- */
+// By desht, adapted from ExperienceUtils (ScrollingMenuSign); credit to nisovin and comphenix
+// for an approach that avoids getTotalExperience(), which breaks after a player enchants.
 public class GameModeInventoriesXPCalculator {
 
     // this is to stop the lookup table growing without control
@@ -37,12 +25,6 @@ public class GameModeInventoriesXPCalculator {
     private final WeakReference<Player> player;
     private final String playerName;
 
-    /**
-     * Create a new GameModeInventoriesXPCalculator for the given player.
-     *
-     * @param player the player for this GameModeInventoriesXPCalculator object
-     * @throws IllegalArgumentException if the player is null
-     */
     GameModeInventoriesXPCalculator(Player player) {
 
         Preconditions.checkNotNull(player, "Player cannot be null");
@@ -51,33 +33,19 @@ public class GameModeInventoriesXPCalculator {
 
     }
 
-    /**
-     * Get the current hard max level for which calculations will be done.
-     *
-     * @return the current hard max level
-     */
     public static int getHardMaxLevel() {
 
         return hardMaxLevel;
 
     }
 
-    /**
-     * Set the current hard max level for which calculations will be done.
-     *
-     * @param hardMaxLevel the new hard max level
-     */
     public static void setHardMaxLevel(int hardMaxLevel) {
 
         GameModeInventoriesXPCalculator.hardMaxLevel = hardMaxLevel;
 
     }
 
-    /**
-     * Initialize the XP lookup table. See http://minecraft.gamepedia.com/Experience
-     *
-     * @param maxLevel The highest level handled by the lookup tables
-     */
+    // XP formulas from http://minecraft.gamepedia.com/Experience
     private static void initLookupTables(int maxLevel) {
 
         xpTotalToReachLevel = new int[maxLevel];
@@ -91,14 +59,8 @@ public class GameModeInventoriesXPCalculator {
 
     }
 
-    /**
-     * Calculate the level that the given XP quantity corresponds to, without using
-     * the lookup tables. This is needed if getLevelForExp() is called with an XP
-     * quantity beyond the range of the existing lookup tables.
-     *
-     * @param exp
-     * @return
-     */
+    // Calculates the level for an XP quantity without the lookup tables, for
+    // getLevelForExp() calls with XP beyond the range of the existing tables.
     private static int calculateLevelForExp(int exp) {
 
         int level = 0;
@@ -117,12 +79,7 @@ public class GameModeInventoriesXPCalculator {
 
     }
 
-    /**
-     * Get the Player associated with this GameModeInventoriesXPCalculator.
-     *
-     * @return the Player object
-     * @throws IllegalStateException if the player is no longer online
-     */
+    // Throws IllegalStateException if the player is no longer online.
     public Player getPlayer() {
 
         Player p = player.get();
@@ -136,48 +93,29 @@ public class GameModeInventoriesXPCalculator {
 
     }
 
-    /**
-     * Adjust the player's XP by the given amount in an intelligent fashion. Works
-     * around some of the non-intuitive behaviour of the basic Bukkit
-     * player.giveExp() method.
-     *
-     * @param amt Amount of XP, may be negative
-     */
+    // Adjusts the player's XP by the given amount (may be negative); works around
+    // non-intuitive behaviour of the basic Bukkit player.giveExp() method.
     public void changeExp(int amt) {
 
         changeExp((double) amt);
 
     }
 
-    /**
-     * Adjust the player's XP by the given amount in an intelligent fashion. Works
-     * around some of the non-intuitive behaviour of the basic Bukkit
-     * player.giveExp() method.
-     *
-     * @param amt Amount of XP, may be negative
-     */
+    // As changeExp(int), for fractional amounts.
     private void changeExp(double amt) {
 
         setExp(getCurrentFractionalXP(), amt);
 
     }
 
-    /**
-     * Set the player's experience
-     *
-     * @param amt Amount of XP, should not be negative
-     */
+    // Sets the player's experience; amount should not be negative.
     void setExp(int amt) {
 
         setExp(0, amt);
 
     }
 
-    /**
-     * Set the player's fractional experience.
-     *
-     * @param amt Amount of XP, should not be negative
-     */
+    // Sets the player's fractional experience; amount should not be negative.
     public void setExp(double amt) {
 
         setExp(0, amt);
@@ -192,7 +130,6 @@ public class GameModeInventoriesXPCalculator {
         int curLvl = p.getLevel();
         int newLvl = getLevelForExp(xp);
 
-        // Increment level
         if (curLvl != newLvl) {
 
             p.setLevel(newLvl);
@@ -207,11 +144,6 @@ public class GameModeInventoriesXPCalculator {
 
     }
 
-    /**
-     * Get the player's current XP total.
-     *
-     * @return the player's total XP
-     */
     int getCurrentExp() {
 
         Player p = getPlayer();
@@ -222,11 +154,6 @@ public class GameModeInventoriesXPCalculator {
 
     }
 
-    /**
-     * Get the player's current fractional XP.
-     *
-     * @return The player's total XP with fractions.
-     */
     private double getCurrentFractionalXP() {
 
         Player p = getPlayer();
@@ -237,37 +164,19 @@ public class GameModeInventoriesXPCalculator {
 
     }
 
-    /**
-     * Checks if the player has the given amount of XP.
-     *
-     * @param amt The amount to check for.
-     * @return true if the player has enough XP, false otherwise
-     */
     public boolean hasExp(int amt) {
 
         return getCurrentExp() >= amt;
 
     }
 
-    /**
-     * Checks if the player has the given amount of fractional XP.
-     *
-     * @param amt The amount to check for.
-     * @return true if the player has enough XP, false otherwise
-     */
     public boolean hasExp(double amt) {
 
         return getCurrentFractionalXP() >= amt;
 
     }
 
-    /**
-     * Get the level that the given amount of XP falls within.
-     *
-     * @param exp the amount to check for
-     * @return the level that a player with this amount total XP would be
-     * @throws IllegalArgumentException if the given XP is less than 0
-     */
+    // Returns the level that a player with this amount of total XP would be.
     private int getLevelForExp(int exp) {
 
         if (exp <= 0) {
@@ -291,14 +200,7 @@ public class GameModeInventoriesXPCalculator {
 
     }
 
-    /**
-     * Retrieves the amount of experience the experience bar can hold at the given
-     * level.
-     *
-     * @param level the level to check
-     * @return the amount of experience at this level in the level bar
-     * @throws IllegalArgumentException if the level is less than 0
-     */
+    // Amount of experience the XP bar can hold at the given level.
     private int getXpNeededToLevelUp(int level) {
 
         Preconditions.checkArgument(level >= 0, "Level may not be negative.");
@@ -306,14 +208,7 @@ public class GameModeInventoriesXPCalculator {
 
     }
 
-    /**
-     * Return the total XP needed to be the given level.
-     *
-     * @param level The level to check for.
-     * @return The amount of XP needed for the level.
-     * @throws IllegalArgumentException if the level is less than 0 or greater than
-     *                                  the current hard maximum
-     */
+    // Total XP needed to reach the given level.
     private int getXpForLevel(int level) {
 
         Preconditions.checkArgument(level >= 0 && level <= hardMaxLevel,
