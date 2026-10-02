@@ -38,3 +38,6 @@ bin/
 
 # IntelliJ files
 .idea/
+
+# Vendored compile-only APIs under libs/ are tracked on purpose.
+!libs/*/*.jar

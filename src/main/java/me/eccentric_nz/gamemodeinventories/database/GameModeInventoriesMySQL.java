@@ -28,8 +28,40 @@ public class GameModeInventoriesMySQL {
 
             // add inventories table
             String queryInventories = "CREATE TABLE IF NOT EXISTS " + plugin.getPrefix()
-                    + "inventories (id int(11) NOT NULL AUTO_INCREMENT, uuid varchar(48) DEFAULT '', player varchar(24) DEFAULT '', gamemode varchar(24) DEFAULT '', inventory text, xp double, armour text, enderchest text, attributes text, armour_attributes text, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_general_ci";
+                    + "inventories (id int(11) NOT NULL AUTO_INCREMENT, uuid varchar(48) DEFAULT '', player varchar(24) DEFAULT '', gamemode varchar(24) DEFAULT '', inventory text, xp double, armour text, enderchest text, attributes text, armour_attributes text, bundle varchar(64), PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_general_ci";
             statement.executeUpdate(queryInventories);
+            // deaths table, parked until the player is back in the death world
+            String queryDeaths = "CREATE TABLE IF NOT EXISTS " + plugin.getPrefix()
+                    + "deaths (id int(11) NOT NULL AUTO_INCREMENT, uuid varchar(48) DEFAULT '', player varchar(24) DEFAULT '', gamemode varchar(24) DEFAULT '', world varchar(64), inventory text, armour text, PRIMARY KEY (id)) DEFAULT CHARSET=utf8 COLLATE utf8_general_ci";
+            statement.executeUpdate(queryDeaths);
+
+            // add the bundle column, the inventory group a slot belongs to
+            String queryBundle = "SHOW COLUMNS FROM " + plugin.getPrefix() + "inventories LIKE 'bundle'";
+            try (ResultSet rsBundle = statement.executeQuery(queryBundle);) {
+
+                if (!rsBundle.next()) {
+
+                    statement.executeUpdate("ALTER TABLE " + plugin.getPrefix() + "inventories ADD bundle varchar(64)");
+                    plugin.getLogger().log(Level.INFO, "[GameModeInventories] Adding bundle to database!");
+
+                }
+
+            }
+
+            // One slot per (uuid, gamemode, bundle); stops a failed legacy assignment
+            // leaving conflicting rows
+            String queryUnique = "SHOW INDEX FROM " + plugin.getPrefix() + "inventories WHERE Key_name = 'uq_gmi_slot'";
+            try (ResultSet rsUnique = statement.executeQuery(queryUnique);) {
+
+                if (!rsUnique.next()) {
+
+                    statement.executeUpdate("ALTER TABLE " + plugin.getPrefix()
+                            + "inventories ADD UNIQUE KEY uq_gmi_slot (uuid, gamemode, bundle)");
+
+                }
+
+            }
+
             // update inventories if there is no attributes column
             String queryAttr = "SHOW COLUMNS FROM " + plugin.getPrefix() + "inventories LIKE 'attributes'";
             try (ResultSet rsAttr = statement.executeQuery(queryAttr);) {

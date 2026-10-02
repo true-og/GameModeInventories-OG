@@ -27,8 +27,32 @@ public class GameModeInventoriesSQLite {
         {
 
             String queryInventories = "CREATE TABLE IF NOT EXISTS " + plugin.getPrefix()
-                    + "inventories (id INTEGER PRIMARY KEY NOT NULL, uuid TEXT, player TEXT, gamemode TEXT, inventory TEXT, xp REAL, armour TEXT, enderchest TEXT, attributes TEXT, armour_attributes TEXT)";
+                    + "inventories (id INTEGER PRIMARY KEY NOT NULL, uuid TEXT, player TEXT, gamemode TEXT, inventory TEXT, xp REAL, armour TEXT, enderchest TEXT, attributes TEXT, armour_attributes TEXT, bundle TEXT)";
             statement.executeUpdate(queryInventories);
+            // deaths table, parked until the player is back in the death world
+            String queryDeaths = "CREATE TABLE IF NOT EXISTS " + plugin.getPrefix()
+                    + "deaths (id INTEGER PRIMARY KEY NOT NULL, uuid TEXT, player TEXT, gamemode TEXT, world TEXT, inventory TEXT, armour TEXT)";
+            statement.executeUpdate(queryDeaths);
+
+            // add the bundle column, the inventory group a slot belongs to
+            String queryBundle = "SELECT sql FROM sqlite_master WHERE tbl_name = '" + plugin.getPrefix()
+                    + "inventories' AND sql LIKE '%bundle TEXT%'";
+            try (ResultSet rsBundle = statement.executeQuery(queryBundle);) {
+
+                if (!rsBundle.next()) {
+
+                    statement.executeUpdate("ALTER TABLE " + plugin.getPrefix() + "inventories ADD bundle TEXT");
+                    plugin.getLogger().log(Level.INFO, "[GameModeInventories] Adding bundle to database!");
+
+                }
+
+            }
+
+            // One slot per (uuid, gamemode, bundle); stops a failed legacy assignment
+            // leaving conflicting rows
+            statement.executeUpdate("CREATE UNIQUE INDEX IF NOT EXISTS uq_gmi_slot ON " + plugin.getPrefix()
+                    + "inventories (uuid, gamemode, bundle)");
+
             // update inventories if there is no uuid column
             String queryUUID = "SELECT sql FROM sqlite_master WHERE tbl_name = '" + plugin.getPrefix()
                     + "inventories' AND sql LIKE '%uuid TEXT%'";

@@ -113,7 +113,8 @@ public class GameModeInventoriesListener implements Listener {
 
             if (p.isOnline()) {
 
-                plugin.getInventoryHandler().switchInventories(p, newGM);
+                // The creative inventory is swapped by the LOW/HIGH handlers below; survival is
+                // MyWorlds' job
                 if (newGM.equals(GameMode.CREATIVE) && plugin.getConfig().getBoolean("creative_world.switch_to")) {
 
                     Location loc = plugin.getServer().getWorld(plugin.getConfig().getString("creative_world.world"))
@@ -165,6 +166,47 @@ public class GameModeInventoriesListener implements Listener {
                 }
 
             }
+
+        }
+
+    }
+
+    // Save the outgoing creative inventory at LOW, before any HIGH handler loads
+    // the incoming one over live.
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onLeaveCreative(PlayerGameModeChangeEvent event) {
+
+        Player p = event.getPlayer();
+        if (!p.hasPermission("gamemodeinventories.use")) {
+
+            return;
+
+        }
+
+        if (p.getGameMode().equals(GameMode.CREATIVE) && !event.getNewGameMode().equals(GameMode.CREATIVE)) {
+
+            plugin.getInventoryHandler().saveCreative(p, plugin.getBundles().of(p.getWorld()));
+            plugin.getInventoryHandler().clearCreativePotions(p);
+
+        }
+
+    }
+
+    // Load the incoming creative inventory at HIGH, after every LOW handler has
+    // saved the outgoing one.
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onEnterCreative(PlayerGameModeChangeEvent event) {
+
+        Player p = event.getPlayer();
+        if (!p.hasPermission("gamemodeinventories.use")) {
+
+            return;
+
+        }
+
+        if (!p.getGameMode().equals(GameMode.CREATIVE) && event.getNewGameMode().equals(GameMode.CREATIVE)) {
+
+            plugin.getInventoryHandler().loadCreative(p, plugin.getBundles().of(p.getWorld()));
 
         }
 
@@ -226,6 +268,21 @@ public class GameModeInventoriesListener implements Listener {
 
     }
 
+    // A creative player rejoins holding the survival profile MyWorlds loaded, so
+    // swap in their creative inventory
+    // before anything (like a forced-survival check) runs next tick.
+    @EventHandler(priority = EventPriority.LOW)
+    public void onJoinLoadCreative(PlayerJoinEvent event) {
+
+        Player p = event.getPlayer();
+        if (p.getGameMode().equals(GameMode.CREATIVE) && p.hasPermission("gamemodeinventories.use")) {
+
+            plugin.getInventoryHandler().loadCreative(p, plugin.getBundles().of(p.getWorld()));
+
+        }
+
+    }
+
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
 
@@ -263,8 +320,16 @@ public class GameModeInventoriesListener implements Listener {
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
 
-        protectedFromForcedFall.remove(event.getPlayer().getUniqueId());
-        pendingModeCheckLocations.remove(event.getPlayer().getUniqueId());
+        Player p = event.getPlayer();
+        protectedFromForcedFall.remove(p.getUniqueId());
+        pendingModeCheckLocations.remove(p.getUniqueId());
+        // Persist a creative inventory on quit; survival is saved by MyWorlds and the
+        // server
+        if (p.getGameMode().equals(GameMode.CREATIVE) && p.hasPermission("gamemodeinventories.use")) {
+
+            plugin.getInventoryHandler().saveCreative(p, plugin.getBundles().of(p.getWorld()));
+
+        }
 
     }
 

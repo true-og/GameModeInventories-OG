@@ -8,8 +8,10 @@ import java.util.Properties;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 
@@ -35,9 +37,13 @@ public class GameModeInventoriesDeath implements Listener {
         Player p = event.getEntity();
         if (p.hasPermission("gamemodeinventories.death") && plugin.getConfig().getBoolean("save_on_death")) {
 
-            // save their inventory
-            plugin.getInventoryHandler().saveOnDeath(p);
-            event.getDrops().clear();
+            // Only suppress vanilla drops when the inventory was actually parked, else the
+            // items are lost
+            if (plugin.getInventoryHandler().saveOnDeath(p)) {
+
+                event.getDrops().clear();
+
+            }
 
         }
 
@@ -77,6 +83,27 @@ public class GameModeInventoriesDeath implements Listener {
 
     }
 
+    // A parked death inventory returns once the player is back in its world
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onWorldChange(PlayerChangedWorldEvent event) {
+
+        Player p = event.getPlayer();
+        if (p.hasPermission("gamemodeinventories.death") && plugin.getConfig().getBoolean("save_on_death")) {
+
+            plugin.getServer().getScheduler().scheduleSyncDelayedTask(plugin, () -> {
+
+                if (p.isOnline()) {
+
+                    plugin.getInventoryHandler().restoreOnSpawn(p);
+
+                }
+
+            });
+
+        }
+
+    }
+
     // reads force-gamemode and gamemode from server.properties
     private ServerValues getServerForceGamemode() {
 
@@ -88,8 +115,10 @@ public class GameModeInventoriesDeath implements Listener {
             String path = "server.properties";
             in = new FileInputStream(path);
             properties.load(in);
-            sv.setForce(properties.getProperty("force-gamemode").equalsIgnoreCase("true"));
-            GameMode gmode = GameMode.valueOf(properties.getProperty("gamemode").toUpperCase(Locale.ENGLISH));
+            // Missing keys mean the vanilla defaults, not a crash on enable
+            sv.setForce(properties.getProperty("force-gamemode", "false").equalsIgnoreCase("true"));
+            GameMode gmode = GameMode
+                    .valueOf(properties.getProperty("gamemode", "survival").toUpperCase(Locale.ENGLISH));
             sv.setMode(gmode);
 
         } catch (FileNotFoundException ex) {

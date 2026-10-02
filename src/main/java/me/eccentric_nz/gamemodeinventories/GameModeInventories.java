@@ -42,6 +42,7 @@ public class GameModeInventories extends JavaPlugin {
     private final Set<UUID> internalSwitches = new HashSet<>();
     public BukkitTask recordingTask;
     private GameModeInventoriesInventory inventoryHandler;
+    private GameModeInventoriesBundles bundles;
     private GameModePolicy gameModePolicy;
     private GameModeInventoriesBlock block;
     private GameModeInventoriesMessage m;
@@ -58,13 +59,13 @@ public class GameModeInventories extends JavaPlugin {
 
             getServer().getOnlinePlayers().forEach((p) -> {
 
-                if (p.hasPermission("gamemodeinventories.use")) {
+                // Persist creative inventories on shutdown; survival is saved by MyWorlds and
+                // the server
+                if (p.hasPermission("gamemodeinventories.use") && p.isOnline()
+                        && p.getGameMode().equals(GameMode.CREATIVE))
+                {
 
-                    if (p.isOnline()) {
-
-                        inventoryHandler.switchInventories(p, p.getGameMode());
-
-                    }
+                    inventoryHandler.saveCreative(p, getBundles().of(p.getWorld()));
 
                 }
 
@@ -148,7 +149,19 @@ public class GameModeInventories extends JavaPlugin {
 
             }
 
+            bundles = new GameModeInventoriesBundles(this);
             inventoryHandler = new GameModeInventoriesInventory(this);
+            // If legacy slots cannot be bundled, serving inventories would read empty, so
+            // refuse to enable
+            if (!inventoryHandler.assignLegacySlotsTo(bundles.of(getServer().getWorlds().get(0)))) {
+
+                getLogger().severe(
+                        "[GameModeInventories] Could not assign legacy inventory slots, disabling to avoid serving empty inventories");
+                pm.disablePlugin(this);
+                return;
+
+            }
+
             // Published before the listeners so anything reacting to enable can read it.
             gameModePolicy = new GameModePolicy(this);
             getServer().getServicesManager().register(GameModePolicy.class, gameModePolicy, this,
@@ -156,6 +169,12 @@ public class GameModeInventories extends JavaPlugin {
             pm.registerEvents(new GameModeInventoriesListener(this), this);
             pm.registerEvents(new GameModeInventoriesChunkLoadListener(this), this);
             pm.registerEvents(new GameModeInventoriesDeath(this), this);
+            if (bundles.usesMyWorlds()) {
+
+                pm.registerEvents(new GameModeInventoriesMyWorldsListener(this), this);
+
+            }
+
             pm.registerEvents(new GameModeInventoriesBlockListener(this), this);
             if (getConfig().getBoolean("track_creative_place.dont_track_is_whitelist")) {
 
@@ -377,6 +396,12 @@ public class GameModeInventories extends JavaPlugin {
     public GameModeInventoriesInventory getInventoryHandler() {
 
         return inventoryHandler;
+
+    }
+
+    public GameModeInventoriesBundles getBundles() {
+
+        return bundles;
 
     }
 

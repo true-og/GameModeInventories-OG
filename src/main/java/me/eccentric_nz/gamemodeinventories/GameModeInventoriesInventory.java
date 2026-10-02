@@ -13,14 +13,17 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import org.bukkit.GameMode;
 import org.bukkit.entity.*;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.entity.minecart.HopperMinecart;
 import org.bukkit.entity.minecart.PoweredMinecart;
 import org.bukkit.entity.minecart.StorageMinecart;
-import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.bukkit.inventory.ItemStack;
 
+// Owns only the CREATIVE inventory per bundle. Survival lives in Purpur's RocksDB through MyWorlds, so no
+// inventory is ever stored in two places and the two stores cannot diverge.
 public class GameModeInventoriesInventory {
+
+    private static final String CREATIVE = GameMode.CREATIVE.name();
 
     private final GameModeInventories plugin;
     private final boolean saveXP;
@@ -38,36 +41,189 @@ public class GameModeInventoriesInventory {
 
     }
 
-    public void switchInventories(Player player, GameMode newGM) {
+    // Persists the player's current (creative) inventory for this bundle. Kicks on
+    // failure so an unsaved
+    // creative inventory is never silently dropped or overwritten later.
+    public void saveCreative(Player player, String bundle) {
 
         String uuid = player.getUniqueId().toString();
         String name = player.getName();
-        String currentGM = player.getGameMode().name();
-        GameModeInventoriesXPCalculator xpc = null;
-        if (saveXP) {
+        GameModeInventoriesXPCalculator xpc = saveXP ? new GameModeInventoriesXPCalculator(player) : null;
+        String inv = GameModeInventoriesBukkitSerialization.toDatabase(player.getInventory().getContents());
+        int xp = saveXP ? xpc.getCurrentExp() : 0;
+        String arm = saveArmour
+                ? GameModeInventoriesBukkitSerialization.toDatabase(player.getInventory().getArmorContents())
+                : null;
+        String ender = (saveEnderChest && player.getEnderChest() != null)
+                ? GameModeInventoriesBukkitSerialization.toDatabase(player.getEnderChest().getContents())
+                : null;
 
-            xpc = new GameModeInventoriesXPCalculator(player);
+        try (Connection connection = plugin.getDatabaseConnection()) {
+
+            connection.setAutoCommit(false);
+            try {
+
+                saveSlot(connection, uuid, name, CREATIVE, bundle, inv, xp, arm, ender);
+                connection.commit();
+
+            } catch (Exception e) {
+
+                connection.rollback();
+                throw e;
+
+            } finally {
+
+                connection.setAutoCommit(true);
+
+            }
+
+        } catch (Exception e) {
+
+            GameModeInventories.plugin.debug("Could not save creative inventory, kicking to avoid losing it, " + e);
+            player.kickPlayer("Inventory sync failed, please rejoin");
 
         }
 
-        String inv = GameModeInventoriesBukkitSerialization.toDatabase(player.getInventory().getContents());
-        try (Connection connection = plugin.getDatabaseConnection();
-                PreparedStatement statement = connection.prepareStatement(
-                        "SELECT * FROM " + plugin.getPrefix() + "inventories WHERE uuid = ? AND gamemode = ?");)
+    }
+
+    // Loads the player's creative inventory for this bundle, or clears it when none
+    // is stored. Kicks on failure.
+    public void loadCreative(Player player, String bundle) {
+
+        String uuid = player.getUniqueId().toString();
+        GameModeInventoriesXPCalculator xpc = saveXP ? new GameModeInventoriesXPCalculator(player) : null;
+        try (Connection connection = plugin.getDatabaseConnection()) {
+
+            LoadedSlot dest = readSlot(connection, uuid, CREATIVE, bundle);
+            applyCreative(player, dest, xpc);
+
+        } catch (Exception e) {
+
+            GameModeInventories.plugin
+                    .debug("Could not load creative inventory, kicking to avoid a wrong profile, " + e);
+            player.kickPlayer("Inventory sync failed, please rejoin");
+
+        }
+
+    }
+
+    // Removes potion effects the player picked up in creative, matching the old
+    // leave-creative behavior.
+    public void clearCreativePotions(Player player) {
+
+        if (potions) {
+
+            player.getActivePotionEffects().forEach((effect) -> player.removePotionEffect(effect.getType()));
+
+        }
+
+    }
+
+    // The decoded contents of one (uuid, gamemode, bundle) slot, or null when none
+    // is stored.
+    private static final class LoadedSlot {
+
+        final ItemStack[] inv;
+        final ItemStack[] arm;
+        final ItemStack[] ender;
+        final int xp;
+
+        LoadedSlot(ItemStack[] inv, ItemStack[] arm, ItemStack[] ender, int xp) {
+
+            this.inv = inv;
+            this.arm = arm;
+            this.ender = ender;
+            this.xp = xp;
+
+        }
+
+    }
+
+    private static ItemStack[] decode(String s) throws IOException {
+
+        return s.startsWith("[") ? GameModeInventoriesJSONSerialization.toItemStacks(s)
+                : GameModeInventoriesBukkitSerialization.fromDatabase(s);
+
+    }
+
+    // Reads and fully decodes a slot before anything is applied. Null when the
+    // player has none yet.
+    private LoadedSlot readSlot(Connection connection, String uuid, String gamemode, String bundle)
+            throws SQLException, IOException
+    {
+
+        try (PreparedStatement statement = connection.prepareStatement(
+                "SELECT * FROM " + plugin.getPrefix() + "inventories WHERE uuid = ? AND gamemode = ? AND bundle = ?");)
         {
 
-            // get their current gamemode inventory from database
             statement.setString(1, uuid);
-            statement.setString(2, currentGM);
-            try (ResultSet rsInv = statement.executeQuery();) {
+            statement.setString(2, gamemode);
+            statement.setString(3, bundle);
+            try (ResultSet rs = statement.executeQuery();) {
 
-                int id = 0;
-                if (rsInv.next()) {
+                if (!rs.next()) {
 
-                    // update it with their current inventory
-                    id = rsInv.getInt("id");
-                    String updateQuery = "UPDATE " + plugin.getPrefix() + "inventories SET inventory = ? WHERE id = ?";
-                    try (PreparedStatement ps = connection.prepareStatement(updateQuery);) {
+                    return null;
+
+                }
+
+                ItemStack[] inv = decode(rs.getString("inventory"));
+                int xp = rs.getInt("xp");
+                ItemStack[] arm = null;
+                if (saveArmour) {
+
+                    String savedarmour = rs.getString("armour");
+                    if (savedarmour != null) {
+
+                        arm = decode(savedarmour);
+
+                    }
+
+                }
+
+                ItemStack[] ender = null;
+                if (saveEnderChest) {
+
+                    String savedender = rs.getString("enderchest");
+                    if (savedender == null || savedender.equals("[Null]") || savedender.isEmpty()) {
+
+                        savedender = "[\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\"]";
+
+                    }
+
+                    ender = decode(savedender);
+
+                }
+
+                return new LoadedSlot(inv, arm, ender, xp);
+
+            }
+
+        }
+
+    }
+
+    // Upserts one (uuid, gamemode, bundle) slot with the given contents.
+    private void saveSlot(Connection connection, String uuid, String name, String gamemode, String bundle, String inv,
+            int xp, String arm, String ender) throws SQLException
+    {
+
+        int id;
+        try (PreparedStatement select = connection.prepareStatement(
+                "SELECT id FROM " + plugin.getPrefix() + "inventories WHERE uuid = ? AND gamemode = ? AND bundle = ?");)
+        {
+
+            select.setString(1, uuid);
+            select.setString(2, gamemode);
+            select.setString(3, bundle);
+            try (ResultSet rs = select.executeQuery();) {
+
+                if (rs.next()) {
+
+                    id = rs.getInt("id");
+                    try (PreparedStatement ps = connection.prepareStatement(
+                            "UPDATE " + plugin.getPrefix() + "inventories SET inventory = ? WHERE id = ?");)
+                    {
 
                         ps.setString(1, inv);
                         ps.setInt(2, id);
@@ -77,333 +233,244 @@ public class GameModeInventoriesInventory {
 
                 } else {
 
-                    // they haven't got an inventory saved yet so make one with their current
-                    // inventory
-                    String insertQuery = "INSERT INTO " + plugin.getPrefix()
-                            + "inventories (uuid, player, gamemode, inventory) VALUES (?, ?, ?, ?)";
-                    try (PreparedStatement ps = connection.prepareStatement(insertQuery,
+                    try (PreparedStatement ps = connection.prepareStatement(
+                            "INSERT INTO " + plugin.getPrefix()
+                                    + "inventories (uuid, player, gamemode, inventory, bundle) VALUES (?, ?, ?, ?, ?)",
                             PreparedStatement.RETURN_GENERATED_KEYS);)
                     {
 
                         ps.setString(1, uuid);
                         ps.setString(2, name);
-                        ps.setString(3, currentGM);
+                        ps.setString(3, gamemode);
                         ps.setString(4, inv);
+                        ps.setString(5, bundle);
                         ps.executeUpdate();
-                        try (ResultSet idRS = ps.getGeneratedKeys();) {
+                        try (ResultSet keys = ps.getGeneratedKeys();) {
 
-                            if (idRS.next()) {
-
-                                id = idRS.getInt(1);
-
-                            }
+                            id = keys.next() ? keys.getInt(1) : 0;
 
                         }
 
                     }
-
-                }
-
-                if (saveXP) {
-
-                    // get players XP
-                    int a = xpc.getCurrentExp();
-                    String xpQuery = "UPDATE " + plugin.getPrefix() + "inventories SET xp = ? WHERE id = ?";
-                    try (PreparedStatement psx = connection.prepareStatement(xpQuery);) {
-
-                        psx.setInt(1, a);
-                        psx.setInt(2, id);
-                        psx.executeUpdate();
-
-                    }
-
-                }
-
-                if (saveArmour) {
-
-                    // get players armour
-                    String arm = GameModeInventoriesBukkitSerialization
-                            .toDatabase(player.getInventory().getArmorContents());
-                    String armourQuery = "UPDATE " + plugin.getPrefix() + "inventories SET armour = ? WHERE id = ?";
-                    try (PreparedStatement psa = connection.prepareStatement(armourQuery);) {
-
-                        psa.setString(1, arm);
-                        psa.setInt(2, id);
-                        psa.executeUpdate();
-
-                    }
-
-                }
-
-                if (saveEnderChest) {
-
-                    // get players enderchest
-                    Inventory ec = player.getEnderChest();
-                    if (ec != null) {
-
-                        String ender = GameModeInventoriesBukkitSerialization.toDatabase(ec.getContents());
-                        String enderQuery = "UPDATE " + plugin.getPrefix()
-                                + "inventories SET enderchest = ? WHERE id = ?";
-                        try (PreparedStatement pse = connection.prepareStatement(enderQuery);) {
-
-                            pse.setString(1, ender);
-                            pse.setInt(2, id);
-                            pse.executeUpdate();
-
-                        }
-
-                    }
-
-                }
-
-                if (potions && currentGM.equals("CREATIVE") && !newGM.equals(GameMode.CREATIVE)) {
-
-                    // remove all potion effects
-                    player.getActivePotionEffects().forEach((effect) -> {
-
-                        player.removePotionEffect(effect.getType());
-
-                    });
-
-                }
-
-                // check if they have an inventory for the new gamemode
-                try {
-
-                    statement.setString(1, uuid);
-                    statement.setString(2, newGM.name());
-                    try (ResultSet rsNewInv = statement.executeQuery();) {
-
-                        int amount;
-                        if (rsNewInv.next()) {
-
-                            // set their inventory to the saved one
-                            String savedinventory = rsNewInv.getString("inventory");
-                            ItemStack[] stacks;
-                            if (savedinventory.startsWith("[")) {
-
-                                stacks = GameModeInventoriesJSONSerialization.toItemStacks(savedinventory);
-
-                            } else {
-
-                                stacks = GameModeInventoriesBukkitSerialization.fromDatabase(savedinventory);
-
-                            }
-
-                            player.getInventory().setContents(stacks);
-                            amount = rsNewInv.getInt("xp");
-                            if (saveArmour) {
-
-                                String savedarmour = rsNewInv.getString("armour");
-                                if (savedarmour != null) {
-
-                                    ItemStack[] a;
-                                    if (savedarmour.startsWith("[")) {
-
-                                        a = GameModeInventoriesJSONSerialization.toItemStacks(savedarmour);
-
-                                    } else {
-
-                                        a = GameModeInventoriesBukkitSerialization.fromDatabase(savedarmour);
-
-                                    }
-
-                                    player.getInventory().setArmorContents(a);
-
-                                }
-
-                            }
-
-                            if (saveEnderChest) {
-
-                                String savedender = rsNewInv.getString("enderchest");
-                                if (savedender == null || savedender.equals("[Null]") || savedender.equals("")
-                                        || savedender.isEmpty())
-                                {
-
-                                    // empty inventory
-                                    savedender = "[\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\",\"null\"]";
-
-                                }
-
-                                ItemStack[] e;
-                                if (savedender.startsWith("[")) {
-
-                                    e = GameModeInventoriesJSONSerialization.toItemStacks(savedender);
-
-                                } else {
-
-                                    e = GameModeInventoriesBukkitSerialization.fromDatabase(savedender);
-
-                                }
-
-                                Inventory echest = player.getEnderChest();
-                                echest.setContents(e);
-
-                            }
-
-                        } else {
-
-                            // start with an empty inventory
-                            player.getInventory().clear();
-                            if (saveArmour) {
-
-                                player.getInventory().setBoots(null);
-                                player.getInventory().setChestplate(null);
-                                player.getInventory().setLeggings(null);
-                                player.getInventory().setHelmet(null);
-
-                            }
-
-                            if (saveEnderChest) {
-
-                                Inventory echest = player.getEnderChest();
-                                echest.clear();
-
-                            }
-
-                            amount = 0;
-
-                        }
-
-                        if (saveXP) {
-
-                            xpc.setExp(amount);
-
-                        }
-
-                        player.updateInventory();
-
-                    }
-
-                } catch (IOException ex) {
-
-                    GameModeInventories.plugin.debug("Could not restore inventory on gamemode change, " + ex);
 
                 }
 
             }
 
-        } catch (SQLException e) {
+        }
 
-            GameModeInventories.plugin.debug("Could not save inventory on gamemode change, " + e);
+        if (saveXP) {
+
+            try (PreparedStatement ps = connection
+                    .prepareStatement("UPDATE " + plugin.getPrefix() + "inventories SET xp = ? WHERE id = ?");)
+            {
+
+                ps.setInt(1, xp);
+                ps.setInt(2, id);
+                ps.executeUpdate();
+
+            }
+
+        }
+
+        if (saveArmour && arm != null) {
+
+            try (PreparedStatement ps = connection
+                    .prepareStatement("UPDATE " + plugin.getPrefix() + "inventories SET armour = ? WHERE id = ?");)
+            {
+
+                ps.setString(1, arm);
+                ps.setInt(2, id);
+                ps.executeUpdate();
+
+            }
+
+        }
+
+        if (saveEnderChest && ender != null) {
+
+            try (PreparedStatement ps = connection
+                    .prepareStatement("UPDATE " + plugin.getPrefix() + "inventories SET enderchest = ? WHERE id = ?");)
+            {
+
+                ps.setString(1, ender);
+                ps.setInt(2, id);
+                ps.executeUpdate();
+
+            }
 
         }
 
     }
 
-    public void saveOnDeath(Player p) {
+    // Puts the decoded creative slot onto the player, or clears everything when
+    // there was none.
+    private void applyCreative(Player player, LoadedSlot dest, GameModeInventoriesXPCalculator xpc) {
+
+        if (dest == null) {
+
+            player.getInventory().clear();
+            if (saveArmour) {
+
+                player.getInventory().setBoots(null);
+                player.getInventory().setChestplate(null);
+                player.getInventory().setLeggings(null);
+                player.getInventory().setHelmet(null);
+
+            }
+
+            if (saveEnderChest) {
+
+                player.getEnderChest().clear();
+
+            }
+
+            if (saveXP) {
+
+                xpc.setExp(0);
+
+            }
+
+            player.updateInventory();
+            return;
+
+        }
+
+        player.getInventory().setContents(dest.inv);
+        if (saveArmour && dest.arm != null) {
+
+            player.getInventory().setArmorContents(dest.arm);
+
+        }
+
+        if (saveEnderChest && dest.ender != null) {
+
+            player.getEnderChest().setContents(dest.ender);
+
+        }
+
+        if (saveXP) {
+
+            xpc.setExp(dest.xp);
+
+        }
+
+        player.updateInventory();
+
+    }
+
+    // Pre-bundle slots were used everywhere, so they join the main bundle. False
+    // when the migration could not run.
+    public boolean assignLegacySlotsTo(String bundle) {
+
+        try (Connection connection = plugin.getDatabaseConnection();
+                PreparedStatement ps = connection.prepareStatement(
+                        "UPDATE " + plugin.getPrefix() + "inventories SET bundle = ? WHERE bundle IS NULL");)
+        {
+
+            ps.setString(1, bundle);
+            int moved = ps.executeUpdate();
+            if (moved > 0) {
+
+                plugin.getLogger().info(
+                        "[GameModeInventories] Assigned " + moved + " legacy inventory slots to bundle " + bundle);
+
+            }
+
+            return true;
+
+        } catch (SQLException e) {
+
+            GameModeInventories.plugin.debug("Could not assign legacy inventory slots to a bundle, " + e);
+            return false;
+
+        }
+
+    }
+
+    // Parks a death's inventory under its bundle and mode. Always inserts, so an
+    // earlier unrestored death is never
+    // overwritten. Returns true only when the row is durably written, so the caller
+    // can keep vanilla drops otherwise.
+    public boolean saveOnDeath(Player p) {
 
         String uuid = p.getUniqueId().toString();
         String name = p.getName();
         String gm = p.getGameMode().name();
+        String bundle = plugin.getBundles().of(p.getWorld());
         String inv = GameModeInventoriesBukkitSerialization.toDatabase(p.getInventory().getContents());
         String arm = GameModeInventoriesBukkitSerialization.toDatabase(p.getInventory().getArmorContents());
         try (Connection connection = plugin.getDatabaseConnection();
-                PreparedStatement statement = connection.prepareStatement(
-                        "SELECT id FROM " + plugin.getPrefix() + "inventories WHERE uuid = ? AND gamemode = ?");)
+                PreparedStatement ps = connection.prepareStatement("INSERT INTO " + plugin.getPrefix()
+                        + "deaths (uuid, player, gamemode, world, inventory, armour) VALUES (?, ?, ?, ?, ?, ?)");)
         {
 
-            // get their current gamemode inventory from database
-            statement.setString(1, uuid);
-            statement.setString(2, gm);
-            try (ResultSet rsInv = statement.executeQuery();) {
-
-                if (rsInv.isBeforeFirst() && rsInv.next()) {
-
-                    // update it with their current inventory
-                    int id = rsInv.getInt("id");
-                    String updateQuery = "UPDATE " + plugin.getPrefix()
-                            + "inventories SET inventory = ?, armour = ? WHERE id = ?";
-                    try (PreparedStatement ps = connection.prepareStatement(updateQuery);) {
-
-                        ps.setString(1, inv);
-                        ps.setString(2, arm);
-                        ps.setInt(3, id);
-                        ps.executeUpdate();
-
-                    }
-
-                } else {
-
-                    // they haven't got an inventory saved yet so make one with their current
-                    // inventory
-                    String invQuery = "INSERT INTO " + plugin.getPrefix()
-                            + "inventories (uuid, player, gamemode, inventory, armour) VALUES (?, ?, ?, ?, ?,)";
-                    try (PreparedStatement ps = connection.prepareStatement(invQuery);) {
-
-                        ps.setString(1, uuid);
-                        ps.setString(2, name);
-                        ps.setString(3, gm);
-                        ps.setString(4, inv);
-                        ps.setString(5, arm);
-                        ps.executeUpdate();
-
-                    }
-
-                }
-
-            }
+            ps.setString(1, uuid);
+            ps.setString(2, name);
+            ps.setString(3, gm);
+            // The 'world' column holds the inventory bundle, so a shared group restores
+            // anywhere in it
+            ps.setString(4, bundle);
+            ps.setString(5, inv);
+            ps.setString(6, arm);
+            return ps.executeUpdate() > 0;
 
         } catch (SQLException e) {
 
             GameModeInventories.plugin.debug("Could not save inventories on player death, " + e);
+            return false;
 
         }
 
     }
 
+    // Returns the oldest death parked in this bundle and mode, added to the player
+    // without discarding what they hold.
     public void restoreOnSpawn(Player p) {
 
         String uuid = p.getUniqueId().toString();
         String gm = p.getGameMode().name();
+        String bundle = plugin.getBundles().of(p.getWorld());
         try (Connection connection = plugin.getDatabaseConnection();
-                PreparedStatement statement = connection.prepareStatement(
-                        "SELECT * FROM " + plugin.getPrefix() + "inventories WHERE uuid = ? AND gamemode = ?");)
+                PreparedStatement statement = connection.prepareStatement("SELECT * FROM " + plugin.getPrefix()
+                        + "deaths WHERE uuid = ? AND world = ? AND gamemode = ? ORDER BY id LIMIT 1");)
         {
 
-            // get their current gamemode inventory from database
             statement.setString(1, uuid);
-            statement.setString(2, gm);
-            try (ResultSet rsInv = statement.executeQuery();) {
+            statement.setString(2, bundle);
+            statement.setString(3, gm);
+            try (ResultSet rs = statement.executeQuery();) {
 
-                if (rsInv.next()) {
+                if (!rs.next()) {
 
-                    try {
+                    return;
 
-                        // set their inventory to the saved one
-                        String savedinventory = rsInv.getString("inventory");
-                        ItemStack[] i;
-                        if (savedinventory.startsWith("[")) {
+                }
 
-                            i = GameModeInventoriesJSONSerialization.toItemStacks(savedinventory);
+                int id = rs.getInt("id");
+                ItemStack[] i;
+                ItemStack[] a;
+                try {
 
-                        } else {
+                    i = decode(rs.getString("inventory"));
+                    a = decode(rs.getString("armour"));
 
-                            i = GameModeInventoriesBukkitSerialization.fromDatabase(savedinventory);
+                } catch (IOException e) {
 
-                        }
+                    GameModeInventories.plugin.debug("Could not restore inventories on respawn, " + e);
+                    return;
 
-                        p.getInventory().setContents(i);
-                        String savedarmour = rsInv.getString("armour");
-                        ItemStack[] a;
-                        if (savedarmour.startsWith("[")) {
+                }
 
-                            a = GameModeInventoriesJSONSerialization.toItemStacks(savedarmour);
+                giveOrDrop(p, i);
+                giveOrDrop(p, a);
 
-                        } else {
+                try (PreparedStatement clear = connection
+                        .prepareStatement("DELETE FROM " + plugin.getPrefix() + "deaths WHERE id = ?");)
+                {
 
-                            a = GameModeInventoriesBukkitSerialization.fromDatabase(savedarmour);
-
-                        }
-
-                        p.getInventory().setArmorContents(a);
-
-                    } catch (IOException e) {
-
-                        GameModeInventories.plugin.debug("Could not restore inventories on respawn, " + e);
-
-                    }
+                    clear.setInt(1, id);
+                    clear.executeUpdate();
 
                 }
 
@@ -412,6 +479,31 @@ public class GameModeInventoriesInventory {
         } catch (SQLException e) {
 
             GameModeInventories.plugin.debug("Could not restore inventories on respawn, " + e);
+
+        }
+
+    }
+
+    // Adds items to the player, dropping any that do not fit, so a restore never
+    // clobbers what they already hold.
+    private void giveOrDrop(Player p, ItemStack[] items) {
+
+        if (items == null) {
+
+            return;
+
+        }
+
+        for (ItemStack item : items) {
+
+            if (item == null || item.getType().isAir()) {
+
+                continue;
+
+            }
+
+            p.getInventory().addItem(item).values()
+                    .forEach(leftover -> p.getWorld().dropItem(p.getLocation(), leftover));
 
         }
 

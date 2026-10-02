@@ -13,8 +13,11 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+
+import net.kyori.adventure.text.Component;
 
 public class GameModeInventoriesWorldListener implements Listener {
 
@@ -46,11 +49,54 @@ public class GameModeInventoriesWorldListener implements Listener {
 
         World from = event.getFrom();
         World to = p.getWorld();
-        if (from != to) {
+        if (from == to) {
+
+            return;
+
+        }
+
+        if (plugin.getBundles().usesMyWorlds()) {
+
+            // MyWorlds loads the profile at MONITOR, so the swap waits a tick
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+
+                if (p.isOnline()) {
+
+                    plugin.internalGameModeChange(p, GameMode.SURVIVAL);
+
+                }
+
+            });
+
+        } else {
 
             plugin.internalGameModeChange(p, GameMode.SURVIVAL);
 
         }
+
+    }
+
+    // Without MyWorlds, survival must be in hand before the next world's save
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onCrossWorldTeleport(PlayerTeleportEvent event) {
+
+        Player p = event.getPlayer();
+        if (plugin.getBundles().usesMyWorlds() || event.getTo() == null
+                || event.getFrom().getWorld().equals(event.getTo().getWorld()))
+        {
+
+            return;
+
+        }
+
+        if (p.getGameMode().equals(GameMode.SURVIVAL) || !p.hasPermission("gamemodeinventories.use")) {
+
+            return;
+
+        }
+
+        plugin.internalGameModeChange(p, GameMode.SURVIVAL);
+        plugin.message(p, Component.text("Switched to survival before changing worlds"));
 
     }
 
