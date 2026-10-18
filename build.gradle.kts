@@ -35,6 +35,7 @@ tasks.named<ProcessResources>("processResources") {
 // ---------------------------- Repos ----------------------------------
 repositories {
     mavenCentral() // Import the Maven Central Maven Repository.
+    maven("https://ci.mg-dev.eu/plugin/repository/everything/") // BKCommonLib.
     gradlePluginPortal() // Import the Gradle Plugin Portal Maven Repository.
     maven { url = uri("https://repo.purpurmc.org/snapshots") } // Import the PurpurMC Maven Repository.
     maven("https://hub.spigotmc.org/nexus/content/groups/public/")
@@ -48,9 +49,7 @@ dependencies {
     compileOnly("net.coreprotect:coreprotect:22.4") // Import the CoreProtect API.
     compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.9") // Import the WorldGuard API.
     compileOnly(project(":libs:MyWorlds")) // Import MyWorlds API (git submodule, built from source).
-    compileOnly(
-        files("libs/BKCommonLib/BKCommonLib-1.19.4-v2.jar")
-    ) // Import BKCommonLib API (local build, required by MyWorlds at compile time).
+    compileOnly("com.bergerkiller.bukkit:BKCommonLib:1.19.4-v2") // Import BKCommonLib API from its Maven repository.
     implementation("com.zaxxer:HikariCP:5.0.1")
     implementation("org.slf4j:slf4j-api:2.0.17") // Bundle a relocated SLF4J API for shaded dependencies.
     implementation("org.slf4j:slf4j-nop:2.0.17") // Provide a relocated no-op SLF4J backend to avoid provider warnings.
