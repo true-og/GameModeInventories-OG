@@ -1,0 +1,6 @@
+[submodule "libs/MyWorlds"]
+	path = libs/MyWorlds
+	url = https://github.com/true-og/MyWorlds
+[submodule "libs/Utilities-OG"]
+	path = libs/Utilities-OG
+	url = https://github.com/true-og/Utilities-OG
